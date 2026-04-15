@@ -1,0 +1,30 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "lfuf/availability-badge",
+    "version": "1.0.0",
+    "title": "Availability Badge",
+    "category": "leftfield",
+    "icon": "visibility",
+    "description": "Show a compact availability status badge for a product. Reads from the shared availability table.",
+    "textdomain": "leftfield-core",
+    "attributes": {
+        "productId": {
+            "type": "number",
+            "default": 0
+        },
+        "locationId": {
+            "type": "number",
+            "default": 0
+        }
+    },
+    "supports": {
+        "html": false,
+        "spacing": {
+            "margin": true
+        }
+    },
+    "editorScript": "file:./index.js",
+    "render": "file:./render.php",
+    "style": "file:./style.css"
+}

@@ -1,0 +1,109 @@
+/**
+ * Stand Hours Schedule — front + editor styles.
+ */
+
+.lfuf-stand-schedule {
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+.lfuf-stand-schedule__fallback {
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.lfuf-stand-schedule__empty {
+    font-size: 0.9rem;
+    color: #6b7280;
+    font-style: italic;
+    margin: 0;
+}
+
+/* ── Grid ──────────────────────────────────────── */
+
+.lfuf-stand-schedule__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.lfuf-stand-schedule__day {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background 0.15s;
+}
+
+.lfuf-stand-schedule__day:last-child {
+    border-bottom: none;
+}
+
+.lfuf-stand-schedule__day--closed {
+    opacity: 0.5;
+}
+
+.lfuf-stand-schedule__day--today {
+    background: #f0fdf4;
+    opacity: 1;
+    font-weight: 600;
+}
+
+.lfuf-stand-schedule__day-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 120px;
+}
+
+.lfuf-stand-schedule__today-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.1rem 0.4rem;
+    border-radius: 9999px;
+    background: #16a34a;
+    color: #fff;
+}
+
+.lfuf-stand-schedule__day-hours {
+    text-align: right;
+    color: #374151;
+}
+
+.lfuf-stand-schedule__day--closed .lfuf-stand-schedule__day-hours {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* ── Editor preview ────────────────────────────── */
+
+.lfuf-stand-schedule__preview {
+    padding: 0.5rem 0;
+}
+
+.lfuf-stand-schedule__preview .lfuf-stand-schedule__grid {
+    margin-top: 0.75rem;
+}
+
+/* ── Responsive ────────────────────────────────── */
+
+@media (max-width: 480px) {
+    .lfuf-stand-schedule__day {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.15rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .lfuf-stand-schedule__day-hours {
+        text-align: left;
+        font-size: 0.85rem;
+    }
+}

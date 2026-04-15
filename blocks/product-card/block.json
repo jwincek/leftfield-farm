@@ -1,0 +1,40 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "lfuf/product-card",
+    "version": "1.0.0",
+    "title": "Product Card",
+    "category": "leftfield",
+    "icon": "carrot",
+    "description": "Display a single Leftfield product with its availability status and source info.",
+    "textdomain": "leftfield-core",
+    "attributes": {
+        "productId": {
+            "type": "number",
+            "default": 0
+        },
+        "showAvailability": {
+            "type": "boolean",
+            "default": true
+        },
+        "showSource": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "supports": {
+        "html": false,
+        "align": ["wide", "full"],
+        "color": {
+            "background": true,
+            "text": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        }
+    },
+    "editorScript": "file:./index.js",
+    "render": "file:./render.php",
+    "style": "file:./style.css"
+}

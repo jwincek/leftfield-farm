@@ -1,0 +1,79 @@
+/**
+ * Location Info — shared front + editor styles.
+ */
+
+.lfuf-location-info {
+    border: 1px solid var(--wp--preset--color--contrast, #ddd);
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    background: var(--wp--preset--color--base, #fff);
+}
+
+.lfuf-location-info__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.lfuf-location-info__title {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.lfuf-location-info__status {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+}
+
+.lfuf-location-info__status--open {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.lfuf-location-info__status--closed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.lfuf-location-info__type {
+    display: inline-block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.6;
+    margin-top: 0.25rem;
+}
+
+.lfuf-location-info__address,
+.lfuf-location-info__hours {
+    margin: 0.5rem 0 0;
+    font-size: 0.9rem;
+}
+
+.lfuf-location-info__hours {
+    opacity: 0.7;
+}
+
+.lfuf-location-info__venmo {
+    display: inline-block;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #008CFF;
+    text-decoration: none;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid #008CFF;
+    border-radius: 0.375rem;
+    transition: background 0.15s, color 0.15s;
+}
+
+.lfuf-location-info__venmo:hover {
+    background: #008CFF;
+    color: #fff;
+}
