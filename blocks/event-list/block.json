@@ -1,0 +1,58 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "lfuf/event-list",
+    "version": "1.0.0",
+    "title": "Event List",
+    "category": "leftfield",
+    "icon": "calendar-alt",
+    "description": "Display upcoming (and optionally past) farm events with RSVP forms, location info, and event type filtering. Uses the Interactivity API for RSVP submission without page reload.",
+    "textdomain": "leftfield-farm",
+    "attributes": {
+        "showPastEvents": {
+            "type": "boolean",
+            "default": false
+        },
+        "perPage": {
+            "type": "number",
+            "default": 10
+        },
+        "showImages": {
+            "type": "boolean",
+            "default": true
+        },
+        "showRsvp": {
+            "type": "boolean",
+            "default": true
+        },
+        "showLocation": {
+            "type": "boolean",
+            "default": true
+        },
+        "showTypeFilters": {
+            "type": "boolean",
+            "default": true
+        },
+        "emptyMessage": {
+            "type": "string",
+            "default": "No upcoming events right now — check back soon!"
+        }
+    },
+    "supports": {
+        "html": false,
+        "interactivity": true,
+        "align": ["wide", "full"],
+        "color": {
+            "background": true,
+            "text": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        }
+    },
+    "editorScript": "file:./index.js",
+    "render": "file:./render.php",
+    "style": "file:./style.css",
+    "viewScriptModule": "file:./view.js"
+}

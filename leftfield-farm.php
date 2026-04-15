@@ -50,6 +50,11 @@ function get_registered_modules(): array {
             'bootstrap' => PLUGIN_DIR . '/modules/availability-board/bootstrap.php',
             'required'  => false,
         ],
+        'event-manager' => [
+            'label'     => __('Event Manager', 'leftfield-farm'),
+            'bootstrap' => PLUGIN_DIR . '/modules/event-manager/bootstrap.php',
+            'required'  => false,
+        ],
         // Future modules:
         // 'availability-board' => [ ... ],
         // 'event-manager'      => [ ... ],
@@ -116,7 +121,11 @@ add_action('plugins_loaded', __NAMESPACE__ . '\\boot', 5);
 
 if (is_admin()) {
     require_once PLUGIN_DIR . '/includes/admin-dashboard.php';
+    require_once PLUGIN_DIR . '/includes/sample-data.php';
 }
+
+// Sample data markers load on both front and admin.
+require_once PLUGIN_DIR . '/includes/sample-data-markers.php';
 
 /* ───────────────────────────────────────────────
  * Block registration (all blocks, flat directory)
@@ -173,6 +182,11 @@ function activate(): void {
     \Leftfield\Core\Availability\create_table();
     \Leftfield\Core\Post_Types\register();
     \Leftfield\Core\Taxonomies\register();
+
+    // Event manager RSVP table.
+    require_once PLUGIN_DIR . '/modules/event-manager/includes/rsvp-table.php';
+    \Leftfield\EventManager\RSVP\create_table();
+
     flush_rewrite_rules();
 }
 register_activation_hook(__FILE__, __NAMESPACE__ . '\\activate');

@@ -248,6 +248,13 @@ function render_dashboard(): void {
                 </li>
             </ul>
         </div>
+
+        <!-- ── Sample Data ── -->
+        <?php
+        if (function_exists('Leftfield\\SampleData\\get_dashboard_html')) {
+            echo \Leftfield\SampleData\get_dashboard_html();
+        }
+        ?>
     </div>
     <?php
 }

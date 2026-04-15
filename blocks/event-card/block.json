@@ -1,0 +1,45 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "lfuf/event-card",
+    "version": "1.0.0",
+    "title": "Event Card",
+    "category": "leftfield",
+    "icon": "calendar",
+    "description": "Display a single farm event with date, location, RSVP, and donation link. Useful for featuring a specific event on any page.",
+    "textdomain": "leftfield-farm",
+    "attributes": {
+        "eventId": {
+            "type": "number",
+            "default": 0
+        },
+        "showImage": {
+            "type": "boolean",
+            "default": true
+        },
+        "showRsvp": {
+            "type": "boolean",
+            "default": true
+        },
+        "showLocation": {
+            "type": "boolean",
+            "default": true
+        }
+    },
+    "supports": {
+        "html": false,
+        "interactivity": true,
+        "align": ["wide"],
+        "color": {
+            "background": true,
+            "text": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        }
+    },
+    "editorScript": "file:./index.js",
+    "render": "file:./render.php",
+    "viewScriptModule": "file:./view.js"
+}
