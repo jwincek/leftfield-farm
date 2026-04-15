@@ -17,4 +17,5 @@ $module_dir = __DIR__;
 require_once $module_dir . '/includes/meta-extensions.php';
 require_once $module_dir . '/includes/rsvp-table.php';
 require_once $module_dir . '/includes/rest-extensions.php';
+require_once $module_dir . '/includes/render-helpers.php';
 require_once $module_dir . '/includes/abilities.php';

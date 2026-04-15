@@ -83,7 +83,7 @@ if ($last_toggled) {
 // Next scheduled opening.
 $next_open = '';
 if (! $is_open && $schedule) {
-    $next_open = compute_next_open($schedule);
+    $next_open = \Leftfield\StandStatus\REST\compute_next_open($schedule);
 }
 
 // Venmo URL.
@@ -225,68 +225,4 @@ $wrapper_attrs = get_block_wrapper_attributes([
     </div>
 </div>
 
-<?php
-/**
- * Compute the next scheduled opening as a human-readable string.
- */
-function compute_next_open(string $schedule_json): string {
-    $schedule = json_decode($schedule_json, true);
-    if (! is_array($schedule) || empty($schedule)) {
-        return '';
-    }
 
-    $now   = current_datetime();
-    $today = (int) $now->format('w');
-    $time  = $now->format('H:i');
-
-    $day_names = [
-        0 => __('Sunday', 'leftfield-stand-status'),
-        1 => __('Monday', 'leftfield-stand-status'),
-        2 => __('Tuesday', 'leftfield-stand-status'),
-        3 => __('Wednesday', 'leftfield-stand-status'),
-        4 => __('Thursday', 'leftfield-stand-status'),
-        5 => __('Friday', 'leftfield-stand-status'),
-        6 => __('Saturday', 'leftfield-stand-status'),
-    ];
-
-    $candidates = [];
-    foreach ($schedule as $entry) {
-        $day  = (int) ($entry['day'] ?? -1);
-        $open = $entry['open'] ?? '';
-        if ($day < 0 || $day > 6 || ! $open) {
-            continue;
-        }
-
-        $delta = $day - $today;
-        if ($delta < 0) {
-            $delta += 7;
-        }
-        if ($delta === 0 && $time >= ($entry['close'] ?? '23:59')) {
-            $delta = 7;
-        }
-
-        $candidates[] = [
-            'delta' => $delta,
-            'day'   => $day,
-            'open'  => $open,
-        ];
-    }
-
-    if (empty($candidates)) {
-        return '';
-    }
-
-    usort($candidates, fn ($a, $b) => $a['delta'] <=> $b['delta']);
-    $next = $candidates[0];
-
-    $formatted_time = date_i18n('g:i A', strtotime('2000-01-01 ' . $next['open']));
-
-    if ($next['delta'] === 0) {
-        return sprintf(__('Today at %s', 'leftfield-stand-status'), $formatted_time);
-    }
-    if ($next['delta'] === 1) {
-        return sprintf(__('Tomorrow at %s', 'leftfield-stand-status'), $formatted_time);
-    }
-
-    return sprintf('%s at %s', $day_names[$next['day']], $formatted_time);
-}

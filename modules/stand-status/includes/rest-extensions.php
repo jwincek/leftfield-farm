@@ -232,3 +232,71 @@ function is_in_season(string $start, string $end): bool {
 
     return $today >= $start_date && $today <= $end_date;
 }
+
+/**
+ * Compute the next scheduled opening as a human-readable string.
+ *
+ * @param string $schedule_json JSON-encoded schedule array.
+ * @return string e.g. "Saturday at 1:00 PM"
+ */
+function compute_next_open(string $schedule_json): string {
+    $schedule = json_decode($schedule_json, true);
+    if (! is_array($schedule) || empty($schedule)) {
+        return '';
+    }
+
+    $now   = current_datetime();
+    $today = (int) $now->format('w');
+    $time  = $now->format('H:i');
+
+    $day_names = [
+        0 => __('Sunday', 'leftfield-farm'),
+        1 => __('Monday', 'leftfield-farm'),
+        2 => __('Tuesday', 'leftfield-farm'),
+        3 => __('Wednesday', 'leftfield-farm'),
+        4 => __('Thursday', 'leftfield-farm'),
+        5 => __('Friday', 'leftfield-farm'),
+        6 => __('Saturday', 'leftfield-farm'),
+    ];
+
+    $candidates = [];
+    foreach ($schedule as $entry) {
+        $day  = (int) ($entry['day'] ?? -1);
+        $open = $entry['open'] ?? '';
+        if ($day < 0 || $day > 6 || ! $open) {
+            continue;
+        }
+
+        $delta = $day - $today;
+        if ($delta < 0) {
+            $delta += 7;
+        }
+        if ($delta === 0 && $time >= ($entry['close'] ?? '23:59')) {
+            $delta = 7;
+        }
+
+        $candidates[] = [
+            'delta' => $delta,
+            'day'   => $day,
+            'open'  => $open,
+        ];
+    }
+
+    if (empty($candidates)) {
+        return '';
+    }
+
+    usort($candidates, fn ($a, $b) => $a['delta'] <=> $b['delta']);
+    $next = $candidates[0];
+
+    $formatted_time = date_i18n('g:i A', strtotime('2000-01-01 ' . $next['open']));
+
+    if ($next['delta'] === 0) {
+        return sprintf(__('Today at %s', 'leftfield-farm'), $formatted_time);
+    }
+    if ($next['delta'] === 1) {
+        return sprintf(__('Tomorrow at %s', 'leftfield-farm'), $formatted_time);
+    }
+
+    return sprintf('%s at %s', $day_names[$next['day']], $formatted_time);
+}
