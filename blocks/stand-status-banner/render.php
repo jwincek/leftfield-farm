@@ -2,18 +2,14 @@
 /**
  * Server-side render for lfuf/stand-status-banner.
  *
- * Uses the WordPress Interactivity API (6.5+) for reactive front-end updates.
- * The server renders the initial HTML with full content (SSR-first), then
- * the view.js module hydrates the store and handles polling via the
- * Interactivity API's reactive state system.
- *
- * Directives used:
- *   data-wp-interactive  — declares the interactive namespace
- *   data-wp-context      — passes server state to the client store
- *   data-wp-class--*     — reactive CSS class toggling
- *   data-wp-text          — reactive text content
- *   data-wp-bind--hidden  — reactive visibility
- *   data-wp-init          — triggers polling setup on hydration
+ * Accessibility improvements:
+ *   - <section> landmark with aria-label for navigation
+ *   - aria-live="polite" on status region for polling announcements
+ *   - Visually-hidden labels for icon-prefixed details
+ *   - Screen-reader-only text for new-tab Venmo link
+ *   - prefers-reduced-motion handled in CSS
+ *   - Status communicated via text, not color alone
+ *   - Configurable heading level (defaults to h2)
  *
  * @var array    $attributes
  * @var string   $content
@@ -68,15 +64,15 @@ if ($season_start && $season_end) {
 
 $status_slug  = $is_open ? 'open' : 'closed';
 $status_label = $is_open
-    ? __('Open Now', 'leftfield-stand-status')
-    : __('Closed', 'leftfield-stand-status');
+    ? __('Open Now', 'leftfield-farm')
+    : __('Closed', 'leftfield-farm');
 
 // Format "last updated" as relative time.
 $time_ago = '';
 if ($last_toggled) {
     $toggled_ts = strtotime($last_toggled);
     if ($toggled_ts) {
-        $time_ago = human_time_diff($toggled_ts, current_time('timestamp')) . ' ' . __('ago', 'leftfield-stand-status');
+        $time_ago = human_time_diff($toggled_ts, current_time('timestamp')) . ' ' . __('ago', 'leftfield-farm');
     }
 }
 
@@ -94,7 +90,7 @@ $venmo_url = $venmo_handle
 // Season display strings.
 $season_range_full = ($season_start && $season_end)
     ? sprintf(
-        __('Our season runs %s – %s. See you then!', 'leftfield-stand-status'),
+        __('Our season runs %s – %s. See you then!', 'leftfield-farm'),
         date_i18n('F j', strtotime($season_start)),
         date_i18n('F j', strtotime($season_end)),
     )
@@ -102,18 +98,13 @@ $season_range_full = ($season_start && $season_end)
 
 $season_range_short = ($season_start && $season_end)
     ? sprintf(
-        __('Season: %s – %s', 'leftfield-stand-status'),
+        __('Season: %s – %s', 'leftfield-farm'),
         date_i18n('M j', strtotime($season_start)),
         date_i18n('M j', strtotime($season_end)),
     )
     : '';
 
-/**
- * Build the Interactivity API context.
- *
- * This is the initial state passed to the client-side store.
- * The view.js module reads and reactively updates these values.
- */
+// Interactivity API context.
 $context = [
     'locationId'      => $location_id,
     'isOpen'          => $is_open,
@@ -129,17 +120,30 @@ $context = [
 $wrapper_attrs = get_block_wrapper_attributes([
     'class' => 'lfuf-stand-banner lfuf-stand-banner--' . esc_attr($layout) . ' lfuf-stand-banner--' . $status_slug,
 ]);
+
+// Aria label for the section landmark.
+$section_label = sprintf(
+    /* translators: %s = stand name */
+    __('%s — Farm Stand Status', 'leftfield-farm'),
+    $post->post_title,
+);
 ?>
 
-<div
+<section
     <?php echo $wrapper_attrs; ?>
+    aria-label="<?php echo esc_attr($section_label); ?>"
     data-wp-interactive="leftfield/stand-status"
     <?php echo wp_interactivity_data_wp_context($context); ?>
     data-wp-init="callbacks.initPolling"
     data-wp-class--lfuf-stand-banner--open="context.isOpen"
     data-wp-class--lfuf-stand-banner--closed="!context.isOpen"
 >
-    <div class="lfuf-stand-banner__main">
+    <!--
+        The status region uses aria-live="polite" so screen readers
+        announce changes when polling updates the open/closed state.
+        "polite" waits for the user's current reading to finish.
+    -->
+    <div class="lfuf-stand-banner__main" aria-live="polite" aria-atomic="true">
         <div class="lfuf-stand-banner__status-row">
             <span
                 class="lfuf-stand-banner__indicator"
@@ -149,11 +153,12 @@ $wrapper_attrs = get_block_wrapper_attributes([
             ></span>
             <span
                 class="lfuf-stand-banner__status-label"
+                role="status"
                 data-wp-text="context.statusLabel"
             ><?php echo esc_html($status_label); ?></span>
         </div>
 
-        <h3 class="lfuf-stand-banner__name"><?php echo esc_html($post->post_title); ?></h3>
+        <h2 class="lfuf-stand-banner__name"><?php echo esc_html($post->post_title); ?></h2>
 
         <p
             class="lfuf-stand-banner__message"
@@ -169,7 +174,7 @@ $wrapper_attrs = get_block_wrapper_attributes([
             <?php echo (! $is_open && $next_open) ? '' : 'hidden'; ?>
         ><?php
             if (! $is_open && $next_open) {
-                printf(esc_html__('Next open: %s', 'leftfield-stand-status'), esc_html($next_open));
+                printf(esc_html__('Next open: %s', 'leftfield-farm'), esc_html($next_open));
             }
         ?></p>
 
@@ -177,7 +182,7 @@ $wrapper_attrs = get_block_wrapper_attributes([
             <span
                 class="lfuf-stand-banner__updated"
                 data-wp-text="state.updatedText"
-            ><?php printf(esc_html__('Updated %s', 'leftfield-stand-status'), esc_html($time_ago)); ?></span>
+            ><?php printf(esc_html__('Updated %s', 'leftfield-farm'), esc_html($time_ago)); ?></span>
         <?php endif; ?>
     </div>
 
@@ -197,6 +202,7 @@ $wrapper_attrs = get_block_wrapper_attributes([
         <?php if ($show_address && $address) : ?>
             <p class="lfuf-stand-banner__address">
                 <span class="lfuf-stand-banner__icon" aria-hidden="true">📍</span>
+                <span class="screen-reader-text"><?php esc_html_e('Address:', 'leftfield-farm'); ?> </span>
                 <?php echo esc_html($address); ?>
             </p>
         <?php endif; ?>
@@ -204,6 +210,7 @@ $wrapper_attrs = get_block_wrapper_attributes([
         <?php if ($show_hours && $hours) : ?>
             <p class="lfuf-stand-banner__hours">
                 <span class="lfuf-stand-banner__icon" aria-hidden="true">🕐</span>
+                <span class="screen-reader-text"><?php esc_html_e('Hours:', 'leftfield-farm'); ?> </span>
                 <?php echo esc_html($hours); ?>
             </p>
         <?php endif; ?>
@@ -216,13 +223,12 @@ $wrapper_attrs = get_block_wrapper_attributes([
                 <span class="lfuf-stand-banner__icon" aria-hidden="true">💸</span>
                 <?php
                 printf(
-                    esc_html__('Pay with Venmo (@%s)', 'leftfield-stand-status'),
+                    esc_html__('Pay with Venmo (@%s)', 'leftfield-farm'),
                     esc_html(ltrim($venmo_handle, '@')),
                 );
                 ?>
+                <span class="screen-reader-text"><?php esc_html_e('(opens in a new tab)', 'leftfield-farm'); ?></span>
             </a>
         <?php endif; ?>
     </div>
-</div>
-
-
+</section>

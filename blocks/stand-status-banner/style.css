@@ -282,3 +282,70 @@
 .lfuf-stand-banner--card .lfuf-stand-banner__details {
     text-align: center;
 }
+
+
+/* =================================================
+ * ACCESSIBILITY
+ * ================================================= */
+
+/* ── Reduced motion ────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .lfuf-stand-banner__indicator--open {
+        animation: none;
+    }
+
+    .lfuf-stand-banner__venmo-link {
+        transition: none;
+    }
+}
+
+/* ── Focus styles ──────────────────────────────── */
+
+.lfuf-stand-banner__venmo-link:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* ── Screen reader text ────────────────────────── */
+/* WordPress themes usually include this class, but
+   we define a fallback in case the theme doesn't. */
+
+.lfuf-stand-banner .screen-reader-text {
+    border: 0;
+    clip: rect(1px, 1px, 1px, 1px);
+    clip-path: inset(50%);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+    word-wrap: normal !important;
+}
+
+/* ── High contrast mode ────────────────────────── */
+
+@media (forced-colors: active) {
+    .lfuf-stand-banner__indicator {
+        forced-color-adjust: none;
+        border: 2px solid LinkText;
+    }
+
+    .lfuf-stand-banner__indicator--open {
+        background: LinkText;
+    }
+
+    .lfuf-stand-banner__indicator--closed {
+        background: transparent;
+    }
+
+    .lfuf-stand-banner {
+        border-color: CanvasText;
+    }
+
+    .lfuf-stand-banner__venmo-link {
+        border-color: LinkText;
+        color: LinkText;
+    }
+}
