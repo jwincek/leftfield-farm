@@ -4,8 +4,8 @@
  * Plugin URI:        https://github.com/jwincek/leftfield-farm
  * Description:       Custom data layer, blocks, and tools for Leftfield Urban Farm + Slowbird Bread Co.
  * Version:           1.0.0
- * Requires at least: 6.5
- * Requires PHP:      8.1
+ * Requires at least: 6.9
+ * Requires PHP:      8.3
  * Author:            Jerome Wincek
  * Author URI:        https://github.com/jwincek
  * License:           GPL-2.0-or-later
@@ -43,6 +43,11 @@ function get_registered_modules(): array {
         'stand-status' => [
             'label'     => __('Stand Status', 'leftfield-farm'),
             'bootstrap' => PLUGIN_DIR . '/modules/stand-status/bootstrap.php',
+            'required'  => false,
+        ],
+        'availability-board' => [
+            'label'     => __('Availability Board', 'leftfield-farm'),
+            'bootstrap' => PLUGIN_DIR . '/modules/availability-board/bootstrap.php',
             'required'  => false,
         ],
         // Future modules:
@@ -104,6 +109,14 @@ function boot(): void {
 }
 
 add_action('plugins_loaded', __NAMESPACE__ . '\\boot', 5);
+
+/* ───────────────────────────────────────────────
+ * Admin dashboard
+ * ─────────────────────────────────────────────── */
+
+if (is_admin()) {
+    require_once PLUGIN_DIR . '/includes/admin-dashboard.php';
+}
 
 /* ───────────────────────────────────────────────
  * Block registration (all blocks, flat directory)

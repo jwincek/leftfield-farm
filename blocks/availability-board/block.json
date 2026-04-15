@@ -1,0 +1,63 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "lfuf/availability-board",
+    "version": "1.0.0",
+    "title": "Availability Board",
+    "category": "leftfield",
+    "icon": "grid-view",
+    "description": "A live board showing what's currently available at the farm, grouped by product type with status badges and optional filtering. Uses the Interactivity API for reactive updates.",
+    "textdomain": "leftfield-farm",
+    "attributes": {
+        "showFilters": {
+            "type": "boolean",
+            "default": true
+        },
+        "showImages": {
+            "type": "boolean",
+            "default": true
+        },
+        "showPrices": {
+            "type": "boolean",
+            "default": true
+        },
+        "showQuantityNotes": {
+            "type": "boolean",
+            "default": true
+        },
+        "defaultStatusFilter": {
+            "type": "string",
+            "default": "abundant,available,limited"
+        },
+        "locationId": {
+            "type": "number",
+            "default": 0
+        },
+        "layout": {
+            "type": "string",
+            "default": "grid",
+            "enum": ["grid", "list"]
+        },
+        "emptyMessage": {
+            "type": "string",
+            "default": "Check back soon — we're updating what's available this week!"
+        }
+    },
+    "supports": {
+        "html": false,
+        "interactivity": true,
+        "align": ["wide", "full"],
+        "color": {
+            "background": true,
+            "text": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        }
+    },
+    "editorScript": "file:./index.js",
+    "render": "file:./render.php",
+    "style": "file:./style.css",
+    "viewScriptModule": "file:./view.js"
+}
