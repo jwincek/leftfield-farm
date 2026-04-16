@@ -1,13 +1,16 @@
 /**
  * Availability Board — Interactivity API view module.
  *
- * REACTIVE PROXY RULES FOR WP 6.9:
- * 1. Store state for shared data, context for per-element read-only data.
- * 2. Object map (not array) for activeStatuses — property flips are tracked.
- * 3. No for...in on state objects — proxy may not track enumeration.
- *    Instead, use allStatuses (a plain array) to know which keys to check,
- *    then access each key on state.activeStatuses explicitly.
- * 4. All state reads directly inside getters — no helper functions.
+ * CRITICAL: Do NOT declare default values for state properties that are
+ * initialized server-side via wp_interactivity_state(). The server values
+ * are injected into the store BEFORE this module runs. If we declare
+ * state: { activeStatuses: {} }, it OVERWRITES the server values.
+ *
+ * Only declare computed getters here. The server provides:
+ *   - state.activeStatuses  (object map)
+ *   - state.allStatuses     (array of status keys)
+ *   - state.activeType      (string)
+ *   - state.totalItems      (number)
  *
  * Store namespace: leftfield/availability-board
  */
@@ -16,52 +19,34 @@ import { store, getContext, getElement } from '@wordpress/interactivity';
 
 const { state } = store( 'leftfield/availability-board', {
     state: {
-        // Initialized by wp_interactivity_state() in render.php.
-        activeStatuses: {},           // { abundant: true, available: true, ... }
-        allStatuses: [],              // ["abundant", "available", "limited", "sold_out", "unavailable"]
-        activeType: '',
-        totalItems: 0,
+        // NO default values here — they come from wp_interactivity_state().
 
-        /**
-         * Is this status filter button active?
-         */
         get isCurrentStatusActive() {
             const ctx = getContext();
             return state.activeStatuses[ ctx.filterStatus ] === true;
         },
 
-        /**
-         * Is this type filter button active?
-         */
         get isCurrentTypeActive() {
             const ctx = getContext();
             return state.activeType === ctx.filterType;
         },
 
-        /**
-         * Should this item be hidden?
-         */
         get isCurrentItemHidden() {
             const ctx = getContext();
 
-            // Check if any status is active by explicitly reading each property.
-            // This ensures the reactive proxy tracks all dependencies.
+            // Read ALL status properties to register proxy dependencies.
             let anyActive = false;
             const keys = state.allStatuses;
             for ( let i = 0; i < keys.length; i++ ) {
                 if ( state.activeStatuses[ keys[ i ] ] === true ) {
                     anyActive = true;
-                    // Don't break — read ALL properties so the proxy tracks them all.
-                    // Otherwise toggling an unread property won't trigger re-evaluation.
                 }
             }
 
-            // Status filter.
             if ( anyActive && state.activeStatuses[ ctx.itemStatus ] !== true ) {
                 return true;
             }
 
-            // Type filter.
             if ( state.activeType && ctx.itemType !== state.activeType ) {
                 return true;
             }
@@ -69,10 +54,6 @@ const { state } = store( 'leftfield/availability-board', {
             return false;
         },
 
-        /**
-         * Should this group be hidden?
-         * Uses itemStatuses from the group's context.
-         */
         get isCurrentGroupHidden() {
             const ctx = getContext();
 
@@ -80,7 +61,6 @@ const { state } = store( 'leftfield/availability-board', {
                 return true;
             }
 
-            // Check if any status is active.
             let anyActive = false;
             const keys = state.allStatuses;
             for ( let i = 0; i < keys.length; i++ ) {
@@ -91,7 +71,6 @@ const { state } = store( 'leftfield/availability-board', {
 
             if ( ! anyActive ) return false;
 
-            // Check if any item in this group has an active status.
             const statuses = ctx.itemStatuses || [];
             for ( let i = 0; i < statuses.length; i++ ) {
                 if ( state.activeStatuses[ statuses[ i ] ] === true ) {
@@ -102,9 +81,6 @@ const { state } = store( 'leftfield/availability-board', {
             return true;
         },
 
-        /**
-         * Visible item count for this group.
-         */
         get currentGroupCount() {
             const ctx = getContext();
 
@@ -134,11 +110,7 @@ const { state } = store( 'leftfield/availability-board', {
             return String( count );
         },
 
-        /**
-         * Footer text.
-         */
         get footerText() {
-            // Read all status properties to register dependencies.
             let anyActive = false;
             const keys = state.allStatuses;
             for ( let i = 0; i < keys.length; i++ ) {
