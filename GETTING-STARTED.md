@@ -6,7 +6,7 @@ Welcome! This guide walks you through setting up your website's farm tools — t
 
 ## First Things First
 
-After the plugin is activated, you'll see a **🥕 Leftfield** menu in your WordPress sidebar. Click it to see the dashboard — it shows which modules are active, how much content you have, and your stand's current status.
+After the plugin is activated, you'll see a **🥕 Leftfield** menu in your WordPress sidebar. Click it to see the dashboard — it shows which modules are active, how much content you have, and your stand's current status. If anything needs attention (like products without photos or events without dates), a **Needs Attention** section will flag those items with direct links to fix them.
 
 The plugin also pre-loads default terms for Product Types (Produce, Bread, Baked Good, Pantry Good, Seedling), Seasons (Spring, Summer, Fall, Winter), and Event Types (Pizza Night, Potluck, Farm Dinner, Workshop, Farm Tour, Seed Exchange, Mini Market). You can use these as-is or rename them.
 
@@ -56,6 +56,8 @@ Repeat for each product. Don't worry about getting them all in at once — you c
 
 **Tip**: The Products list table shows price and availability status at a glance. You can sort by price.
 
+**Bulk import**: If you have many products to add at once, go to **🥕 Leftfield → Product Import**. You can download a CSV template (or export your existing products), edit it in a spreadsheet, and upload it to create or update products in bulk. The format reference on the page explains every column.
+
 ---
 
 ## Step 3: Update Weekly Availability
@@ -63,11 +65,12 @@ Repeat for each product. Don't worry about getting them all in at once — you c
 This is the task you'll do most often — probably every Saturday morning.
 
 1. Go to **🥕 Leftfield → Availability** in the sidebar.
-2. You'll see all your products in a table. For each one:
+2. You'll see all your products in a table with thumbnails and prices. For each one:
    - Pick a **Status**: Abundant, Available, Limited, Sold Out, or leave it blank (not listed).
    - Add a **Quantity Note** if helpful (e.g., `~3 bunches left`, `Last 2 loaves`).
-3. Set the **Effective Date** (defaults to today).
-4. Click **Save All Changes**.
+3. **Shortcut**: Click **Copy Last Week** to pre-fill from your current availability. Then just adjust the few things that changed.
+4. Set the **Effective Date** (defaults to today).
+5. Click **Save All Changes**.
 
 That's it — the availability board on your website updates immediately.
 
@@ -156,8 +159,10 @@ You can now set availability per-location on the Availability page, and the boar
 | Set a status message | Admin bar → "Set Status Message…" | As needed |
 | Update availability | 🥕 Leftfield → Availability | Weekly (Saturday morning) |
 | Add a new product | Products → Add New | As new crops/items come in |
+| Bulk add products | 🥕 Leftfield → Product Import | Start of season |
 | Create an event | Events → Add New | When planning events |
 | Check RSVPs | Events list → RSVP column | Before each event |
+| Check for content gaps | 🥕 Leftfield dashboard | Occasionally |
 
 ---
 
@@ -179,10 +184,13 @@ Sample content is labeled with amber "Sample" badges on the front end and a noti
 - **Featured images matter.** Products with photos look much better on the availability board. Even a quick phone photo of the arugula bed or a fresh loaf is great.
 - **Keep excerpts short.** The excerpt field on products and events shows up in cards and lists. One sentence is perfect.
 - **The admin bar toggle works on your phone.** Open the WordPress app, visit any page on your site, and tap the stand status dot to open or close from the field.
-- **Availability expires automatically.** If you set an expiration date on an availability entry, it drops off the board on its own. Useful for "this week only" items.
+- **Availability expires automatically.** If you set an expiration date on an availability entry, it drops off the board on its own. A daily cleanup job removes expired entries from the database.
+- **"Copy Last Week" is your friend.** On the availability page, click Copy Last Week to pre-fill from current data, then adjust the few things that changed. Much faster than starting from scratch.
 - **Events sort by date.** Upcoming events appear in chronological order. Past events move to the "Past" section automatically.
 - **The sidebar panels save with the post.** All the Location, Product, and Event fields in the sidebar save when you click Update or Publish — no separate save button needed.
 - **Admin columns save you time.** The list tables for Products, Events, and Locations show key info at a glance. Use the column headers to sort.
+- **You'll get email notifications.** When someone RSVPs or the stand status is toggled, you'll get an email. These can be turned off if they get noisy — just ask Jerome.
+- **Export before you import.** If you're doing a bulk product update, export your current products first to get the CSV format, make changes in a spreadsheet, then re-import.
 
 ---
 

@@ -40,12 +40,13 @@ leftfield-farm/
 │   │       ├── post-types.php         # CPTs: product, source, location, event
 │   │       ├── taxonomies.php         # product_type, season, event_type (auto-seeded)
 │   │       ├── meta-fields.php        # All post meta (show_in_rest)
-│   │       ├── availability-table.php # Custom DB table + CRUD helpers
+│   │       ├── availability-table.php # Custom DB table + CRUD + expiration cron
 │   │       ├── rest-api.php           # REST routes under lfuf/v1
 │   │       ├── abilities.php          # WP 6.9+ Abilities API
 │   │       ├── single-content.php     # CPT single page meta display
 │   │       ├── single-styles.php      # Front-end styles for single CPTs
-│   │       └── admin-columns.php      # Custom columns for CPT list tables
+│   │       ├── admin-columns.php      # Custom columns for CPT list tables
+│   │       └── product-import-export.php # CSV import/export for products
 │   ├── stand-status/
 │   │   ├── bootstrap.php
 │   │   └── includes/
@@ -67,6 +68,10 @@ leftfield-farm/
 │           ├── rest-extensions.php    # Event listing, RSVP endpoints
 │           ├── render-helpers.php     # Shared render functions for event blocks
 │           └── abilities.php          # Event abilities
+│   └── notifications/
+│       ├── bootstrap.php
+│       └── includes/
+│           └── email-notifications.php # RSVP, stand, expiration emails
 ├── blocks/                            # Flat directory, all blocks
 │   ├── product-card/                  # Single product display
 │   ├── availability-badge/            # Inline status badge
@@ -88,7 +93,7 @@ leftfield-farm/
 
 ### Core (always active)
 
-The shared data layer. Registers four custom post types (`lfuf_product`, `lfuf_source`, `lfuf_location`, `lfuf_event`), three taxonomies with auto-seeded default terms, a custom `{prefix}_lfuf_availability` table for time-sensitive product status, 16 REST API endpoints under `lfuf/v1`, Abilities API abilities for AI/automation discoverability, single CPT page enhancements with structured meta tables, and custom admin columns for all CPT list tables.
+The shared data layer. Registers four custom post types (`lfuf_product`, `lfuf_source`, `lfuf_location`, `lfuf_event`), three taxonomies with auto-seeded default terms, a custom `{prefix}_lfuf_availability` table for time-sensitive product status with daily expiration cron, 16 REST API endpoints under `lfuf/v1`, Abilities API abilities for AI/automation discoverability, single CPT page enhancements with structured meta tables, custom admin columns for all CPT list tables, a "Needs Attention" dashboard widget that flags missing content, and CSV import/export for bulk product management.
 
 ### Stand Status
 
@@ -101,13 +106,21 @@ Real-time open/closed status for the roadside stand. Admin bar toggle, REST endp
 
 Live product availability display grouped by product type. REST endpoint aggregates data from the availability table into a grouped structure. Includes:
 - **Availability Board** — Interactivity API client-side filtering by status and product type, object-map state with full proxy dependency tracking
-- Admin quick-entry page for batch availability updates
+- Admin quick-entry page with product thumbnails, price display, "Copy Last Week" for fast updates, and mobile-optimized touch targets
 
 ### Event Manager
 
 Farm events with RSVP support. Five-layer RSVP security: honeypot, IP rate limiting (salted SHA-256), duplicate detection, party size cap, atomic cap enforcement via `SELECT FOR UPDATE`.
 - **Event List** — Interactivity API, inline RSVP form with client-side validation
 - **Event Card** — Single event embed with RSVP, cancellation badge
+
+### Notifications
+
+Email notifications to the site admin for key farm events. All notifications are filterable and can be individually suppressed. Listeners for:
+- **RSVP added** — guest name, party size, headcount vs cap, "FULL" alert
+- **RSVP cancelled** — who dropped, updated headcount
+- **Stand status toggled** — styled OPEN/CLOSED confirmation with timestamp
+- **Availability expired** — daily summary of purged rows
 
 ## Editor Experience
 
@@ -196,6 +209,30 @@ All under `lfuf/v1`. 16 custom endpoints plus standard WP REST for each CPT.
 ## Abilities (WP 6.9+)
 
 10 abilities across 4 categories, registered via `wp_register_ability()` with `function_exists()` guard for backward compatibility.
+
+## Admin Tools
+
+### Needs Attention Dashboard
+
+The 🥕 Leftfield dashboard shows a "Needs Attention" section that flags content gaps: products without photos or prices, events without start dates, locations without addresses, products with stale availability (over a week old), and products not listed on the board at all. Each item links directly to the relevant admin page. The section disappears when everything is filled in.
+
+### Availability Quick-Entry
+
+The weekly availability update page shows product thumbnails, prices, and a "Copy Last Week" button that pre-fills the form from current availability. Status dropdowns and note inputs have larger touch targets for mobile use. On narrow screens, less-critical columns hide automatically.
+
+### Product Import / Export
+
+CSV import and export under **🥕 Leftfield → Product Import**. Export downloads all products with every field. Import creates or updates products matched by title, handles pipe-separated taxonomy terms, resolves source links by title, and optionally sideloads featured images from URLs. A collapsible format reference documents every column.
+
+## Automation
+
+### Availability Expiration Cron
+
+A daily WP-Cron job (`lfuf_availability_cleanup`) runs at 3:00 AM and deletes availability rows with an `expires_date` in the past. The board already hides expired rows via date filtering — the cron just cleans up the database. Self-healing: if the cron event is missing (e.g., after a git pull without reactivation), it re-schedules on the next page load.
+
+### Email Notifications
+
+All filterable via `lfuf_notify_*` hooks. Recipients default to the site admin email and can be extended via the `lfuf_notify_recipients` filter. Individual notifications can be suppressed with `add_filter('lfuf_notify_rsvp_added', '__return_false')`.
 
 ## Sample Data
 
