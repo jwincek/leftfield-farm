@@ -1,6 +1,6 @@
 # Leftfield Farm
 
-Custom WordPress plugin for **Leftfield Urban Farm + Slowbird Bread Co.** — a no-till urban farm and cottage bakery in Johnson City, TN.
+Custom WordPress plugin for **Leftfield Urban Farm + Slowbird Bread Co.** — a no-till urban farm and cottage bakery at 1820 E Myrtle Ave, Johnson City, TN 37601.
 
 Single plugin, modular architecture. No build step required.
 
@@ -17,7 +17,7 @@ Single plugin, modular architecture. No build step required.
 
 ## Requirements
 
-- WordPress 6.5+
+- WordPress 6.9+ (Abilities API, Interactivity API directive SSR)
 - PHP 8.1+
 
 ## Architecture
@@ -26,18 +26,26 @@ Single plugin, modular architecture. No build step required.
 leftfield-farm/
 ├── leftfield-farm.php                 # Bootstrap, module loader, block registration
 ├── includes/
-│   ├── admin-dashboard.php            # Admin dashboard page
-│   └── sample-data.php                # Load/remove sample data toggle
+│   ├── admin-dashboard.php            # Admin dashboard with module status
+│   ├── sample-data.php                # Load/remove sample data toggle
+│   └── sample-data-markers.php        # Front-end "Sample" badges, admin notices
+├── assets/js/
+│   ├── editor-location.js             # Location CPT sidebar panels
+│   ├── editor-product.js              # Product CPT sidebar panels
+│   └── editor-event.js                # Event CPT sidebar panels
 ├── modules/
 │   ├── core/                          # Always loaded
 │   │   ├── bootstrap.php
 │   │   └── includes/
 │   │       ├── post-types.php         # CPTs: product, source, location, event
-│   │       ├── taxonomies.php         # product_type, season, event_type
+│   │       ├── taxonomies.php         # product_type, season, event_type (auto-seeded)
 │   │       ├── meta-fields.php        # All post meta (show_in_rest)
 │   │       ├── availability-table.php # Custom DB table + CRUD helpers
 │   │       ├── rest-api.php           # REST routes under lfuf/v1
-│   │       └── abilities.php          # WP 6.9+ Abilities API
+│   │       ├── abilities.php          # WP 6.9+ Abilities API
+│   │       ├── single-content.php     # CPT single page meta display
+│   │       ├── single-styles.php      # Front-end styles for single CPTs
+│   │       └── admin-columns.php      # Custom columns for CPT list tables
 │   ├── stand-status/
 │   │   ├── bootstrap.php
 │   │   └── includes/
@@ -55,8 +63,9 @@ leftfield-farm/
 │       ├── bootstrap.php
 │       └── includes/
 │           ├── meta-extensions.php    # _lfuf_em_* meta on events
-│           ├── rsvp-table.php         # Custom RSVP table + CRUD
+│           ├── rsvp-table.php         # Custom RSVP table + CRUD + rate limiting
 │           ├── rest-extensions.php    # Event listing, RSVP endpoints
+│           ├── render-helpers.php     # Shared render functions for event blocks
 │           └── abilities.php          # Event abilities
 ├── blocks/                            # Flat directory, all blocks
 │   ├── product-card/                  # Single product display
@@ -64,64 +73,98 @@ leftfield-farm/
 │   ├── location-info/                 # Location card with Venmo
 │   ├── stand-status-banner/           # Interactivity API, live polling
 │   ├── stand-toggle/                  # Editor-only admin control
-│   ├── stand-hours-schedule/          # Weekly schedule grid
+│   ├── stand-hours-schedule/          # Weekly schedule grid (semantic table)
 │   ├── availability-board/            # Interactivity API, client-side filtering
 │   ├── event-list/                    # Interactivity API, inline RSVP
-│   └── event-card/                    # Single event embed
-├── assets/css/
+│   └── event-card/                    # Single event embed with RSVP
 ├── languages/
 ├── GETTING-STARTED.md                 # Walkthrough for farm operators
 ├── composer.json
 ├── .editorconfig
-├── .gitignore
 └── README.md
 ```
 
 ## Modules
 
-| Module | Status | Purpose |
-|--------|--------|---------|
-| **Core** | Required | CPTs, taxonomies, meta, availability table, REST API, Abilities API |
-| **Stand Status** | Optional | Admin bar toggle, live status banner, schedule display |
-| **Availability Board** | Optional | Weekly "what's available" board, admin quick-entry page |
-| **Event Manager** | Optional | Event listing, RSVP tracking, inline RSVP forms |
+### Core (always active)
 
-Modules are registered in `leftfield-farm.php`. Disable via filter:
+The shared data layer. Registers four custom post types (`lfuf_product`, `lfuf_source`, `lfuf_location`, `lfuf_event`), three taxonomies with auto-seeded default terms, a custom `{prefix}_lfuf_availability` table for time-sensitive product status, 16 REST API endpoints under `lfuf/v1`, Abilities API abilities for AI/automation discoverability, single CPT page enhancements with structured meta tables, and custom admin columns for all CPT list tables.
 
-```php
-add_filter( 'leftfield_active_modules', function ( array $modules ): array {
-    return array_diff( $modules, ['event-manager'] );
-} );
-```
+### Stand Status
 
-Check module status: `Leftfield\is_module_active( 'stand-status' )`
+Real-time open/closed status for the roadside stand. Admin bar toggle, REST endpoints for status changes, and three blocks:
+- **Stand Status Banner** — front-end display with Interactivity API reactive updates and optional polling
+- **Stand Quick Toggle** — editor-only control panel for toggling status
+- **Stand Hours Schedule** — semantic `<table>` with today highlighted, `aria-current="date"`
 
-## Blocks
+### Availability Board
 
-| Block | Module | Interactivity API | Purpose |
-|-------|--------|-------------------|---------|
-| `lfuf/product-card` | Core | No | Single product display |
-| `lfuf/availability-badge` | Core | No | Inline status badge |
-| `lfuf/location-info` | Core | No | Location card with Venmo |
-| `lfuf/stand-status-banner` | Stand Status | Yes | Live open/closed banner |
-| `lfuf/stand-toggle` | Stand Status | No | Editor-only toggle control |
-| `lfuf/stand-hours-schedule` | Stand Status | No | Weekly schedule grid |
-| `lfuf/availability-board` | Availability Board | Yes | Filterable product board |
-| `lfuf/event-list` | Event Manager | Yes | Event listing with RSVP |
-| `lfuf/event-card` | Event Manager | Yes | Single event embed |
+Live product availability display grouped by product type. REST endpoint aggregates data from the availability table into a grouped structure. Includes:
+- **Availability Board** — Interactivity API client-side filtering by status and product type, object-map state with full proxy dependency tracking
+- Admin quick-entry page for batch availability updates
 
-Editor scripts use **no-build IIFE** pattern (plain JS, no webpack).
-Front-end view scripts use **Interactivity API** (WP 6.5+) as ES modules via `viewScriptModule`.
+### Event Manager
 
-## REST API
+Farm events with RSVP support. Five-layer RSVP security: honeypot, IP rate limiting (salted SHA-256), duplicate detection, party size cap, atomic cap enforcement via `SELECT FOR UPDATE`.
+- **Event List** — Interactivity API, inline RSVP form with client-side validation
+- **Event Card** — Single event embed with RSVP, cancellation badge
 
-All under `lfuf/v1`. CPTs get standard WP REST endpoints automatically.
+## Editor Experience
+
+### Sidebar Panels
+
+Each CPT has custom sidebar panels using `PluginDocumentSettingPanel` with `useEntityProp`:
+
+**Location** — Location Details (type, address, hours, Venmo, coordinates, open toggle, status message) + Schedule & Season (date pickers, auto-toggle, visual weekly schedule builder)
+
+**Product** — Product Details (price, unit dropdown with custom option, growing notes) + Sources (search and link source posts)
+
+**Event** — Event Details (date/time pickers, location selector, donation link, validation notice) + RSVP Settings (enable, cap slider, label, close toggle) + Event Info (cost note, what to bring, cancelled toggle)
+
+### Admin Columns
+
+**Products** — price (sortable), availability status badge with color coding
+
+**Events** — start date/time (sortable, default sort ascending), location link, RSVP headcount with cap/closed/full indicators, cancelled badge, past event marker
+
+**Locations** — type (sortable), open/closed pill badge, address
+
+## Block Development
+
+All blocks use the **no-build IIFE** pattern for editor scripts — plain JS using `wp.blocks`, `wp.element`, `wp.blockEditor`, and `wp.components`. No webpack, no `@wordpress/scripts`.
+
+Front-end view scripts use the **Interactivity API** (WP 6.5+) where reactivity is needed, loaded as ES modules via `viewScriptModule` in `block.json`.
+
+### Interactivity API Patterns (WP 6.9)
+
+Lessons learned and patterns established during development:
+
+- **Store state for shared data, context for per-element identifiers.** `wp_interactivity_state()` for filter state; `data-wp-context` only for read-only values like `filterStatus`, `itemStatus`, `groupSlug`.
+- **Never declare defaults in `store()` for server-initialized properties.** Client-side defaults overwrite `wp_interactivity_state()` values.
+- **Object maps for multi-value filters.** `{ abundant: true, limited: false }` instead of arrays. The proxy tracks individual property flips but not array reassignment.
+- **Iterate `allStatuses` array, not `for...in`.** The proxy may not track `for...in` enumeration as a dependency on individual properties.
+- **Read ALL properties without `break`.** Early exit skips dependency registration for unread properties.
+- **Add `[hidden] { display: none }` overrides** when CSS sets explicit `display` on elements using the `hidden` attribute.
+
+## Accessibility
+
+All blocks follow WCAG 2.1 AA:
+- `<section>`/`<article>` landmarks with `aria-label`
+- `screen-reader-text` labels, `aria-live="polite"` on dynamic regions
+- `aria-pressed` on toggle buttons, `role="toolbar"` on filter groups
+- `role="status"` on badges, `focus-visible` outlines
+- `prefers-reduced-motion: reduce`, `forced-colors: active` for Windows High Contrast
+- New-tab warnings on external links
+- Honeypot field with `aria-hidden="true"` and `tabindex="-1"`
+
+## REST API Endpoints
+
+All under `lfuf/v1`. 16 custom endpoints plus standard WP REST for each CPT.
 
 ### Core
-
 | Method | Endpoint | Auth | Purpose |
 |--------|----------|------|---------|
-| GET | `/availability` | Public | Current availability (filterable) |
+| GET | `/availability` | Public | All current availability |
 | POST | `/availability` | Editor+ | Upsert a status row |
 | DELETE | `/availability/{id}` | Editor+ | Delete a status row |
 | GET | `/products/{id}/sources` | Public | Sources linked to a product |
@@ -129,122 +172,34 @@ All under `lfuf/v1`. CPTs get standard WP REST endpoints automatically.
 | PATCH | `/locations/{id}/toggle` | Editor+ | Toggle open/closed |
 
 ### Stand Status
-
 | Method | Endpoint | Auth | Purpose |
 |--------|----------|------|---------|
-| PATCH | `/stand/{id}/status` | Editor+ | Toggle + message + timestamp |
-| GET | `/stand/{id}/info` | Public | Full stand info (for polling) |
-| GET | `/stands` | Public | All stand-type locations |
+| PATCH | `/stand/{id}/status` | Editor+ | Toggle + set message |
+| GET | `/stand/{id}/info` | Public | Full stand info (polling) |
+| GET | `/stands` | Public | List all stand-type locations |
 
 ### Availability Board
-
 | Method | Endpoint | Auth | Purpose |
 |--------|----------|------|---------|
-| GET | `/board` | Public | Grouped board with filters |
-| GET | `/board/last-updated` | Public | Latest change timestamp |
+| GET | `/board` | Public | Grouped availability data |
+| GET | `/board/last-updated` | Public | Cache-bust timestamp |
 
 ### Event Manager
-
 | Method | Endpoint | Auth | Purpose |
 |--------|----------|------|---------|
-| GET | `/events/upcoming` | Public | Upcoming events (filterable) |
+| GET | `/events/upcoming` | Public | Future events |
 | GET | `/events/past` | Public | Past events |
-| POST | `/events/{id}/rsvp` | Public | Submit RSVP (name + party size) |
-| DELETE | `/rsvp/{token}` | Public | Cancel RSVP by token |
-| GET | `/events/{id}/rsvps` | Editor+ | Admin RSVP list |
+| POST | `/events/{id}/rsvp` | Public | Submit RSVP (rate limited) |
+| DELETE | `/rsvp/{token}` | Public | Cancel via unique token |
+| GET | `/events/{id}/rsvps` | Editor+ | RSVP list for an event |
 
-## Abilities API (WP 6.9+)
+## Abilities (WP 6.9+)
 
-Gracefully skipped on older WordPress versions. All abilities are exposed via the `wp-abilities/v1` REST namespace for AI agents, MCP adapters, and automation tools.
-
-| Ability | Category | Access |
-|---------|----------|--------|
-| `leftfield/list-products` | leftfield-products | Public |
-| `leftfield/get-product-sources` | leftfield-products | Public |
-| `leftfield/get-availability` | leftfield-availability | Public |
-| `leftfield/update-availability` | leftfield-availability | Editor+ |
-| `leftfield/list-locations` | leftfield-locations | Public |
-| `leftfield/toggle-stand-status` | leftfield-locations | Editor+ |
-| `leftfield/get-stand-info` | leftfield-locations | Public |
-| `leftfield/get-board` | leftfield-availability | Public |
-| `leftfield/list-upcoming-events` | leftfield-events | Public |
-| `leftfield/rsvp-to-event` | leftfield-events | Public |
-
-## Data Model
-
-### Custom Post Types
-
-| CPT | REST base | Purpose |
-|-----|-----------|---------|
-| `lfuf_product` | `products` | Produce, bread, baked goods, seedlings |
-| `lfuf_source` | `sources` | Grain origins, partner farms |
-| `lfuf_location` | `locations` | Stand, market, on-farm |
-| `lfuf_event` | `events` | Pizza nights, potlucks, workshops |
-
-### Custom Tables
-
-| Table | Module | Purpose |
-|-------|--------|---------|
-| `{prefix}_lfuf_availability` | Core | Time-sensitive product status |
-| `{prefix}_lfuf_rsvps` | Event Manager | Event RSVP tracking |
-
-### Key Relationships
-
-- **Product → Sources**: `_lfuf_source_ids` meta (array of IDs)
-- **Event → Location**: `_lfuf_event_location_id` meta
-- **Event → Products**: `_lfuf_featured_product_ids` meta (array)
-- **Availability → Product + Location**: FK in custom table
-
-## Action Hooks
-
-| Hook | Module | Fires when |
-|------|--------|------------|
-| `lfuf_stand_status_changed` | Stand Status | Stand is toggled open/closed |
-| `lfuf_rsvp_added` | Event Manager | New RSVP is submitted |
-| `lfuf_rsvp_cancelled` | Event Manager | RSVP is cancelled |
+10 abilities across 4 categories, registered via `wp_register_ability()` with `function_exists()` guard for backward compatibility.
 
 ## Sample Data
 
-The plugin includes a sample data seeder for testing:
-
-1. Go to **🥕 Leftfield** dashboard.
-2. Click **Load Sample Data** — creates 8 products, 2 locations, 3 events, and availability entries.
-3. Explore blocks on your pages.
-4. Click **Remove Sample Data** to clean up (deletes all sample content and orphaned table rows).
-
-All sample posts are tagged with `_lfuf_sample_data` meta so they're cleanly identifiable.
-
-## WordPress APIs
-
-| API | Version | Usage |
-|-----|---------|-------|
-| Block API (apiVersion 3) | 6.1+ | All 9 blocks |
-| Interactivity API | 6.5+ | 4 blocks with reactive front ends |
-| Abilities API | 6.9+ | 10 discoverable abilities |
-| REST API | 4.7+ | 16 endpoints under `lfuf/v1` |
-| Script Modules | 6.5+ | Interactivity API view scripts |
-
-### Forward-looking (WP 7.0)
-
-The plugin is structured for easy adoption of upcoming WP 7.0 features:
-
-- **`watch()` function**: Stand status polling and board refresh can move from `setInterval` to reactive watchers. Comments in view.js files mark the exact swap points.
-- **Client-side Abilities API**: Ability names and JSON Schema shapes match the `@wordpress/abilities` registration pattern. Adding `registerAbility()` calls in JS will be additive.
-- **`state.url` from `core/router`**: Analytics page views on client-side navigation can be added without refactoring.
-
-## Development
-
-No build step. Edit files directly.
-
-- **Editor scripts**: No-build IIFE, using `wp.blocks`, `wp.element`, etc.
-- **View scripts**: ES modules importing from `@wordpress/interactivity`.
-- **Styles**: Plain CSS, one file per block.
-- **PHP**: Namespaced, PHP 8.1+ strict types throughout.
-
-## Documentation
-
-- [`README.md`](README.md) — Developer reference (this file)
-- [`GETTING-STARTED.md`](GETTING-STARTED.md) — Step-by-step walkthrough for farm operators
+The admin dashboard provides a one-click toggle to load 8 products, 2 locations, 3 events, and availability entries. Sample content is tagged with `_lfuf_sample_data` meta for clean removal. Front-end shows amber "Sample" badges via `the_title` filter.
 
 ## License
 

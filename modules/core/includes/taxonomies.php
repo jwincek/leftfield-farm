@@ -48,11 +48,13 @@ function register_product_type(): void {
         'show_admin_column' => true,
     ]);
 
-    // Seed default terms on first activation.
-    $defaults = ['Produce', 'Bread', 'Baked Good', 'Pantry Good', 'Seedling'];
-    foreach ($defaults as $term) {
-        if (! term_exists($term, 'lfuf_product_type')) {
-            wp_insert_term($term, 'lfuf_product_type');
+    // Seed default terms (self-healing, admin only).
+    if (is_admin()) {
+        $defaults = ['Produce', 'Bread', 'Baked Good', 'Pantry Good', 'Seedling'];
+        foreach ($defaults as $term) {
+            if (! term_exists($term, 'lfuf_product_type')) {
+                wp_insert_term($term, 'lfuf_product_type');
+            }
         }
     }
 }
@@ -84,10 +86,12 @@ function register_season(): void {
         'show_admin_column' => true,
     ]);
 
-    $defaults = ['Spring', 'Summer', 'Fall', 'Winter'];
-    foreach ($defaults as $term) {
-        if (! term_exists($term, 'lfuf_season')) {
-            wp_insert_term($term, 'lfuf_season');
+    if (is_admin()) {
+        $defaults = ['Spring', 'Summer', 'Fall', 'Winter'];
+        foreach ($defaults as $term) {
+            if (! term_exists($term, 'lfuf_season')) {
+                wp_insert_term($term, 'lfuf_season');
+            }
         }
     }
 }
@@ -119,18 +123,20 @@ function register_event_type(): void {
         'show_admin_column' => true,
     ]);
 
-    $defaults = [
-        'Pizza Night',
-        'Potluck',
-        'Farm Dinner',
-        'Workshop',
-        'Farm Tour',
-        'Seed Exchange',
-        'Mini Market',
-    ];
-    foreach ($defaults as $term) {
-        if (! term_exists($term, 'lfuf_event_type')) {
-            wp_insert_term($term, 'lfuf_event_type');
+    if (is_admin()) {
+        $defaults = [
+            'Pizza Night',
+            'Potluck',
+            'Farm Dinner',
+            'Workshop',
+            'Farm Tour',
+            'Seed Exchange',
+            'Mini Market',
+        ];
+        foreach ($defaults as $term) {
+            if (! term_exists($term, 'lfuf_event_type')) {
+                wp_insert_term($term, 'lfuf_event_type');
+            }
         }
     }
 }
