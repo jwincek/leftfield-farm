@@ -43,6 +43,7 @@ foreach ($statuses as $s) {
 
 wp_interactivity_state('leftfield/availability-board', [
     'activeStatuses' => $status_map,
+    'allStatuses'    => array_values($statuses),
     'activeType'     => '',
     'totalItems'     => $total,
 ]);
