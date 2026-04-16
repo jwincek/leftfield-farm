@@ -47,7 +47,7 @@
     cursor: pointer;
     border: 1.5px solid transparent;
     transition: opacity 0.15s, border-color 0.15s, transform 0.1s;
-    opacity: 0.5;
+    opacity: 0.65;
     font-size: 0.7rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -57,13 +57,18 @@
 }
 
 .lfuf-avail-board__filter-btn:hover {
-    opacity: 0.8;
+    opacity: 0.85;
 }
 
 .lfuf-avail-board__filter-btn--active {
     opacity: 1;
     border-color: currentColor;
     transform: scale(1.05);
+}
+
+.lfuf-avail-board__filter-btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
 }
 
 /* Type filter buttons (no badge colors) */
@@ -195,6 +200,12 @@
     text-decoration: underline;
 }
 
+.lfuf-avail-board__item-name:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
 .lfuf-avail-board__item-price {
     font-size: 0.85rem;
     font-weight: 600;
@@ -266,6 +277,21 @@
     font-style: italic;
 }
 
+/* ── Screen reader text ────────────────────────── */
+
+.lfuf-avail-board .screen-reader-text {
+    border: 0;
+    clip: rect(1px, 1px, 1px, 1px);
+    clip-path: inset(50%);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+    word-wrap: normal !important;
+}
+
 /* ── Responsive ────────────────────────────────── */
 
 @media (max-width: 480px) {
@@ -281,5 +307,56 @@
         flex-direction: column;
         gap: 0.25rem;
         text-align: center;
+    }
+}
+
+
+/* =================================================
+ * ACCESSIBILITY
+ * ================================================= */
+
+/* ── Reduced motion ────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .lfuf-avail-board--grid .lfuf-avail-board__item,
+    .lfuf-avail-board--list .lfuf-avail-board__item,
+    .lfuf-avail-board__filter-btn {
+        transition: none;
+    }
+
+    .lfuf-avail-board__filter-btn--active {
+        transform: none;
+    }
+}
+
+/* ── High contrast mode ────────────────────────── */
+
+@media (forced-colors: active) {
+    .lfuf-avail-board--grid .lfuf-avail-board__item {
+        border-color: CanvasText;
+    }
+
+    .lfuf-avail-board__filter-btn {
+        border-color: ButtonText;
+        forced-color-adjust: none;
+    }
+
+    .lfuf-avail-board__filter-btn--active {
+        background: Highlight;
+        color: HighlightText;
+        border-color: Highlight;
+    }
+
+    .lfuf-availability-badge {
+        forced-color-adjust: none;
+        border: 1px solid CanvasText;
+    }
+
+    .lfuf-avail-board__item-name {
+        color: LinkText;
+    }
+
+    .lfuf-avail-board__group-title {
+        border-bottom-color: CanvasText;
     }
 }
