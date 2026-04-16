@@ -184,6 +184,32 @@ function render_dashboard(): void {
             </div>
         <?php endif; ?>
 
+        <!-- ── What's Missing ── -->
+        <?php
+        $gaps = get_content_gaps();
+        if (! empty($gaps)) :
+        ?>
+            <div class="lfuf-dashboard__section">
+                <h2><?php esc_html_e('Needs Attention', 'leftfield-farm'); ?></h2>
+                <div class="lfuf-dashboard__gaps">
+                    <?php foreach ($gaps as $gap) : ?>
+                        <div class="lfuf-dashboard__gap lfuf-dashboard__gap--<?php echo esc_attr($gap['severity']); ?>">
+                            <span class="lfuf-dashboard__gap-icon"><?php echo $gap['icon']; ?></span>
+                            <div class="lfuf-dashboard__gap-body">
+                                <strong><?php echo esc_html($gap['label']); ?></strong>
+                                <span class="lfuf-dashboard__gap-detail"><?php echo esc_html($gap['detail']); ?></span>
+                            </div>
+                            <?php if ($gap['url']) : ?>
+                                <a href="<?php echo esc_url($gap['url']); ?>" class="button button-small">
+                                    <?php echo esc_html($gap['action']); ?>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- ── Modules ── -->
         <div class="lfuf-dashboard__section">
             <h2><?php esc_html_e('Modules', 'leftfield-farm'); ?></h2>
@@ -262,6 +288,143 @@ function render_dashboard(): void {
 /* ───────────────────────────────────────────────
  * Helpers
  * ─────────────────────────────────────────────── */
+
+/**
+ * Check for content gaps that need attention.
+ *
+ * @return array<array{icon:string,label:string,detail:string,severity:string,url:string,action:string}>
+ */
+function get_content_gaps(): array {
+    global $wpdb;
+    $gaps = [];
+
+    // Products without featured images.
+    $no_thumb = new \WP_Query([
+        'post_type'      => 'lfuf_product',
+        'post_status'    => 'publish',
+        'meta_query'     => [['key' => '_thumbnail_id', 'compare' => 'NOT EXISTS']],
+        'fields'         => 'ids',
+        'posts_per_page' => -1,
+    ]);
+    $no_thumb_count = $no_thumb->found_posts;
+    if ($no_thumb_count > 0) {
+        $gaps[] = [
+            'icon'     => '📷',
+            'label'    => sprintf(_n('%d product without a photo', '%d products without photos', $no_thumb_count, 'leftfield-farm'), $no_thumb_count),
+            'detail'   => __('Products look better on the availability board with images.', 'leftfield-farm'),
+            'severity' => 'info',
+            'url'      => admin_url('edit.php?post_type=lfuf_product'),
+            'action'   => __('View Products', 'leftfield-farm'),
+        ];
+    }
+
+    // Products without a price.
+    $no_price_count = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->posts} p
+         LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_lfuf_price'
+         WHERE p.post_type = 'lfuf_product' AND p.post_status = 'publish'
+           AND (pm.meta_value IS NULL OR pm.meta_value = '')"
+    );
+    if ($no_price_count > 0) {
+        $gaps[] = [
+            'icon'     => '💲',
+            'label'    => sprintf(_n('%d product without a price', '%d products without prices', $no_price_count, 'leftfield-farm'), $no_price_count),
+            'detail'   => __('Visitors see the price on the availability board and product pages.', 'leftfield-farm'),
+            'severity' => 'warning',
+            'url'      => admin_url('edit.php?post_type=lfuf_product'),
+            'action'   => __('View Products', 'leftfield-farm'),
+        ];
+    }
+
+    // Events without a start date.
+    $no_date_count = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->posts} p
+         LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_lfuf_start_datetime'
+         WHERE p.post_type = 'lfuf_event' AND p.post_status = 'publish'
+           AND (pm.meta_value IS NULL OR pm.meta_value = '')"
+    );
+    if ($no_date_count > 0) {
+        $gaps[] = [
+            'icon'     => '📅',
+            'label'    => sprintf(_n('%d event without a start date', '%d events without start dates', $no_date_count, 'leftfield-farm'), $no_date_count),
+            'detail'   => __('Events need a start date to appear in the event list.', 'leftfield-farm'),
+            'severity' => 'warning',
+            'url'      => admin_url('edit.php?post_type=lfuf_event'),
+            'action'   => __('View Events', 'leftfield-farm'),
+        ];
+    }
+
+    // Locations without an address.
+    $no_addr_count = (int) $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$wpdb->posts} p
+         LEFT JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id AND pm.meta_key = '_lfuf_address'
+         WHERE p.post_type = 'lfuf_location' AND p.post_status = 'publish'
+           AND (pm.meta_value IS NULL OR pm.meta_value = '')"
+    );
+    if ($no_addr_count > 0) {
+        $gaps[] = [
+            'icon'     => '📍',
+            'label'    => sprintf(_n('%d location without an address', '%d locations without addresses', $no_addr_count, 'leftfield-farm'), $no_addr_count),
+            'detail'   => __('The address shows on location cards and the stand banner.', 'leftfield-farm'),
+            'severity' => 'warning',
+            'url'      => admin_url('edit.php?post_type=lfuf_location'),
+            'action'   => __('View Locations', 'leftfield-farm'),
+        ];
+    }
+
+    // Stale availability and unlisted products.
+    $avail_table = $wpdb->prefix . 'lfuf_availability';
+    if ($wpdb->get_var("SHOW TABLES LIKE '{$avail_table}'") === $avail_table) {
+        $today    = current_time('Y-m-d');
+        $week_ago = date('Y-m-d', strtotime('-7 days', current_time('timestamp')));
+
+        // Products with availability older than 7 days.
+        $stale_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT a.product_id) FROM {$avail_table} a
+             INNER JOIN {$wpdb->posts} p ON p.ID = a.product_id AND p.post_status = 'publish'
+             WHERE a.effective_date <= %s
+               AND (a.expires_date IS NULL OR a.expires_date >= %s)
+               AND a.updated_at < %s",
+            $today,
+            $today,
+            $week_ago . ' 00:00:00',
+        ));
+        if ($stale_count > 0) {
+            $gaps[] = [
+                'icon'     => '🕐',
+                'label'    => sprintf(_n('%d product with availability over a week old', '%d products with availability over a week old', $stale_count, 'leftfield-farm'), $stale_count),
+                'detail'   => __('Consider refreshing the availability board.', 'leftfield-farm'),
+                'severity' => 'info',
+                'url'      => admin_url('admin.php?page=leftfield-availability'),
+                'action'   => __('Update Availability', 'leftfield-farm'),
+            ];
+        }
+
+        // Products not on the board at all.
+        $total_products = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'lfuf_product' AND post_status = 'publish'"
+        );
+        $listed_count = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT product_id) FROM {$avail_table}
+             WHERE effective_date <= %s AND (expires_date IS NULL OR expires_date >= %s)",
+            $today,
+            $today,
+        ));
+        $unlisted = $total_products - $listed_count;
+        if ($unlisted > 0 && $total_products > 0) {
+            $gaps[] = [
+                'icon'     => '🫥',
+                'label'    => sprintf(_n('%d product not on the availability board', '%d products not on the availability board', $unlisted, 'leftfield-farm'), $unlisted),
+                'detail'   => __('These products won\'t show up for visitors until you set their status.', 'leftfield-farm'),
+                'severity' => 'info',
+                'url'      => admin_url('admin.php?page=leftfield-availability'),
+                'action'   => __('Update Availability', 'leftfield-farm'),
+            ];
+        }
+    }
+
+    return $gaps;
+}
 
 function get_availability_summary(): array {
     global $wpdb;
@@ -412,6 +575,50 @@ function get_dashboard_css(): string {
         display: flex;
         gap: 0.5rem;
         flex-wrap: wrap;
+    }
+
+    /* Needs Attention gaps */
+    .lfuf-dashboard__gaps {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .lfuf-dashboard__gap {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 1rem;
+        border-radius: 0.375rem;
+        border-left: 3px solid;
+        background: #fff;
+    }
+    .lfuf-dashboard__gap--warning {
+        border-left-color: #f59e0b;
+        background: #fffbeb;
+    }
+    .lfuf-dashboard__gap--info {
+        border-left-color: #3b82f6;
+        background: #eff6ff;
+    }
+    .lfuf-dashboard__gap-icon {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    .lfuf-dashboard__gap-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+    }
+    .lfuf-dashboard__gap-body strong {
+        font-size: 0.85rem;
+    }
+    .lfuf-dashboard__gap-detail {
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+    .lfuf-dashboard__gap .button {
+        flex-shrink: 0;
     }
 
     /* Modules table */

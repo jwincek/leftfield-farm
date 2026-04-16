@@ -60,6 +60,15 @@ function render_page(): void {
     $rest_base    = esc_url_raw(rest_url('lfuf/v1'));
     $nonce        = wp_create_nonce('wp_rest');
 
+    // Build a JSON map of last-known statuses for the copy-last-week feature.
+    $last_week_data = [];
+    foreach ($by_product as $pid => $row) {
+        $last_week_data[$pid] = [
+            'status' => $row->status,
+            'note'   => $row->quantity_note ?? '',
+        ];
+    }
+
     ?>
     <div class="wrap lfuf-quick-entry">
         <h1><?php esc_html_e('Update Availability', 'leftfield-farm'); ?></h1>
@@ -85,6 +94,10 @@ function render_page(): void {
             </label>
             <input type="date" id="lfuf-qe-date" value="<?php echo esc_attr($today); ?>">
 
+            <button type="button" id="lfuf-qe-copy-last" class="button">
+                <?php esc_html_e('Copy Last Week', 'leftfield-farm'); ?>
+            </button>
+
             <button type="button" id="lfuf-qe-save-all" class="button button-primary" disabled>
                 <?php esc_html_e('Save All Changes', 'leftfield-farm'); ?>
             </button>
@@ -94,6 +107,7 @@ function render_page(): void {
         <table class="wp-list-table widefat striped lfuf-quick-entry__table">
             <thead>
                 <tr>
+                    <th class="lfuf-qe-col-thumb"></th>
                     <th class="lfuf-qe-col-product"><?php esc_html_e('Product', 'leftfield-farm'); ?></th>
                     <th class="lfuf-qe-col-type"><?php esc_html_e('Type', 'leftfield-farm'); ?></th>
                     <th class="lfuf-qe-col-status"><?php esc_html_e('Status', 'leftfield-farm'); ?></th>
@@ -109,10 +123,27 @@ function render_page(): void {
                     $type_str = ($types && ! is_wp_error($types))
                         ? implode(', ', wp_list_pluck($types, 'name'))
                         : '—';
+                    $thumb    = get_the_post_thumbnail_url($pid, 'thumbnail');
                 ?>
                     <tr class="lfuf-qe-row" data-product-id="<?php echo (int) $pid; ?>">
+                        <td class="lfuf-qe-col-thumb">
+                            <?php if ($thumb) : ?>
+                                <img src="<?php echo esc_url($thumb); ?>" alt="" class="lfuf-qe-thumb">
+                            <?php else : ?>
+                                <span class="lfuf-qe-thumb-placeholder">📷</span>
+                            <?php endif; ?>
+                        </td>
                         <td class="lfuf-qe-col-product">
                             <strong><?php echo esc_html($product->post_title); ?></strong>
+                            <?php
+                                $price = get_post_meta($pid, '_lfuf_price', true);
+                                $unit  = get_post_meta($pid, '_lfuf_unit', true);
+                                if ($price) :
+                            ?>
+                                <span class="lfuf-qe-price"><?php echo esc_html($price); ?><?php
+                                    if ($unit) echo ' / ' . esc_html($unit);
+                                ?></span>
+                            <?php endif; ?>
                         </td>
                         <td class="lfuf-qe-col-type">
                             <span class="lfuf-qe-type-label"><?php echo esc_html($type_str); ?></span>
@@ -183,8 +214,20 @@ function render_page(): void {
         .lfuf-quick-entry__toolbar label { font-weight: 600; font-size: 0.85rem; }
         .lfuf-quick-entry__save-status { font-size: 0.85rem; color: #16a34a; font-weight: 600; }
         .lfuf-quick-entry__save-status.error { color: #dc2626; }
-        .lfuf-quick-entry__table .lfuf-qe-col-product { min-width: 180px; }
-        .lfuf-quick-entry__table .lfuf-qe-col-type { min-width: 100px; }
+
+        .lfuf-quick-entry__table .lfuf-qe-col-thumb { width: 48px; padding: 4px 8px; }
+        .lfuf-qe-thumb {
+            width: 40px; height: 40px; object-fit: cover; border-radius: 4px;
+            display: block;
+        }
+        .lfuf-qe-thumb-placeholder {
+            display: flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px; background: #f3f4f6; border-radius: 4px;
+            font-size: 16px; opacity: 0.5;
+        }
+        .lfuf-quick-entry__table .lfuf-qe-col-product { min-width: 160px; }
+        .lfuf-qe-price { display: block; font-size: 0.8rem; color: #6b7280; margin-top: 2px; }
+        .lfuf-quick-entry__table .lfuf-qe-col-type { min-width: 90px; }
         .lfuf-quick-entry__table .lfuf-qe-col-status { min-width: 140px; }
         .lfuf-quick-entry__table .lfuf-qe-col-note { min-width: 180px; }
         .lfuf-quick-entry__table .lfuf-qe-col-note input { width: 100%; }
@@ -193,6 +236,15 @@ function render_page(): void {
         .lfuf-qe-row.lfuf-qe-changed { background: #fffbeb !important; }
         .lfuf-qe-row.lfuf-qe-saved { background: #f0fdf4 !important; }
         .lfuf-qe-row.lfuf-qe-error { background: #fef2f2 !important; }
+
+        /* Larger touch targets for mobile */
+        .lfuf-qe-status-select {
+            min-height: 36px; font-size: 14px; padding: 4px 8px;
+        }
+        .lfuf-qe-note-input {
+            min-height: 36px; font-size: 14px; padding: 4px 8px;
+        }
+
         .lfuf-availability-badge {
             display: inline-block; font-size: 0.7rem; font-weight: 600;
             text-transform: uppercase; letter-spacing: 0.04em;
@@ -203,17 +255,24 @@ function render_page(): void {
         .lfuf-availability-badge--limited    { background: #fef3c7; color: #92400e; }
         .lfuf-availability-badge--sold_out   { background: #fee2e2; color: #991b1b; }
         .lfuf-availability-badge--unavailable { background: #f3f4f6; color: #6b7280; }
+
+        @media (max-width: 782px) {
+            .lfuf-qe-col-type, .lfuf-qe-col-current { display: none; }
+            .lfuf-qe-col-product { min-width: 120px; }
+        }
     </style>
 
     <script>
     ( function () {
         'use strict';
 
-        var restBase = <?php echo wp_json_encode($rest_base); ?>;
-        var nonce    = <?php echo wp_json_encode($nonce); ?>;
-        var saveBtn  = document.getElementById( 'lfuf-qe-save-all' );
-        var statusEl = document.getElementById( 'lfuf-qe-status' );
-        var rows     = document.querySelectorAll( '.lfuf-qe-row' );
+        var restBase    = <?php echo wp_json_encode($rest_base); ?>;
+        var nonce       = <?php echo wp_json_encode($nonce); ?>;
+        var lastWeek    = <?php echo wp_json_encode($last_week_data); ?>;
+        var saveBtn     = document.getElementById( 'lfuf-qe-save-all' );
+        var copyBtn     = document.getElementById( 'lfuf-qe-copy-last' );
+        var statusEl    = document.getElementById( 'lfuf-qe-status' );
+        var rows        = document.querySelectorAll( '.lfuf-qe-row' );
 
         // Track changes.
         rows.forEach( function ( row ) {
@@ -239,6 +298,36 @@ function render_page(): void {
                 ? 'Save ' + changed.length + ' Change' + ( changed.length > 1 ? 's' : '' )
                 : 'Save All Changes';
         }
+
+        // Copy last week's values into the form.
+        copyBtn.addEventListener( 'click', function () {
+            var filled = 0;
+            rows.forEach( function ( row ) {
+                var pid    = row.dataset.productId;
+                var prev   = lastWeek[ pid ];
+                if ( ! prev ) return;
+
+                var select = row.querySelector( '.lfuf-qe-status-select' );
+                var input  = row.querySelector( '.lfuf-qe-note-input' );
+
+                if ( select.value !== prev.status || input.value !== prev.note ) {
+                    select.value = prev.status;
+                    input.value  = prev.note;
+                    filled++;
+                }
+
+                var changed = select.value !== select.dataset.original ||
+                              input.value !== input.dataset.original;
+                row.classList.toggle( 'lfuf-qe-changed', changed );
+                row.classList.remove( 'lfuf-qe-saved', 'lfuf-qe-error' );
+            } );
+
+            updateSaveBtn();
+            statusEl.textContent = filled > 0
+                ? 'Copied ' + filled + ' items from current availability. Review and save.'
+                : 'No changes — already matches current availability.';
+            statusEl.className = 'lfuf-quick-entry__save-status';
+        } );
 
         // Batch save.
         saveBtn.addEventListener( 'click', function () {
