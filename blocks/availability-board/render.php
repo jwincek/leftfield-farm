@@ -2,13 +2,9 @@
 /**
  * Server-side render for lfuf/availability-board.
  *
- * Fix: activeStatuses and activeType are initialized as store state
- * via wp_interactivity_state(), NOT as context. This avoids the
- * Interactivity API context inheritance issue where child context
- * writes don't propagate to sibling elements.
- *
- * Context is used ONLY for per-element data (filterStatus, filterType,
- * groupSlug, itemStatus, itemType) that is read-only.
+ * activeStatuses is now an object map { "abundant": true, "available": true }
+ * instead of an array, because the Interactivity API reactive proxy
+ * reliably tracks object property changes but not array reassignment.
  *
  * @var array    $attributes
  * @var string   $content
@@ -28,7 +24,6 @@ $location_id         = (int) ($attributes['locationId'] ?? 0);
 $layout              = $attributes['layout'] ?? 'grid';
 $empty_message       = $attributes['emptyMessage'] ?? __('Check back soon — we\'re updating what\'s available this week!', 'leftfield-farm');
 
-// Build the board data.
 $request = new \WP_REST_Request('GET', '/lfuf/v1/board');
 $request->set_param('location', $location_id);
 $response = \Leftfield\AvailabilityBoard\REST\get_board($request);
@@ -39,22 +34,21 @@ $filter_types = $board['filter_types'] ?? [];
 $statuses     = $board['statuses'] ?? [];
 $total        = $board['total_items'] ?? 0;
 
-$active_statuses = array_filter(array_map('trim', explode(',', $default_status)));
+// Build activeStatuses as an object map: { "abundant": true, "available": true, ... }
+$active_list   = array_filter(array_map('trim', explode(',', $default_status)));
+$status_map    = new \stdClass();
+foreach ($statuses as $s) {
+    $status_map->$s = in_array($s, $active_list, true);
+}
 
-/**
- * Initialize shared filter state via wp_interactivity_state().
- * This lives in the store, NOT in context, so all elements
- * read from and write to the same state.
- */
 wp_interactivity_state('leftfield/availability-board', [
-    'activeStatuses' => $active_statuses,
+    'activeStatuses' => $status_map,
     'activeType'     => '',
     'totalItems'     => $total,
 ]);
 
-// Context only carries per-block config, not shared filter state.
 $context = [
-    'layout'  => $layout,
+    'layout'   => $layout,
     'restBase' => esc_url_raw(rest_url('lfuf/v1')),
 ];
 
@@ -76,7 +70,6 @@ $wrapper_attrs = get_block_wrapper_attributes([
         </p>
     <?php else : ?>
 
-        <!-- ── Filters ── -->
         <?php if ($show_filters) : ?>
             <div class="lfuf-avail-board__filters">
                 <div
@@ -88,7 +81,7 @@ $wrapper_attrs = get_block_wrapper_attributes([
                         <?php esc_html_e('Show:', 'leftfield-farm'); ?>
                     </span>
                     <?php foreach ($statuses as $status) :
-                        $is_active = in_array($status, $active_statuses, true);
+                        $is_active = in_array($status, $active_list, true);
                     ?>
                         <button
                             type="button"
@@ -139,7 +132,6 @@ $wrapper_attrs = get_block_wrapper_attributes([
             </div>
         <?php endif; ?>
 
-        <!-- ── Board groups ── -->
         <?php foreach ($groups as $group) : ?>
             <div
                 class="lfuf-avail-board__group"
@@ -238,7 +230,6 @@ $wrapper_attrs = get_block_wrapper_attributes([
             </div>
         <?php endforeach; ?>
 
-        <!-- ── Board footer ── -->
         <p class="lfuf-avail-board__footer" aria-live="polite" aria-atomic="true">
             <span data-wp-text="state.footerText">
                 <?php printf(
