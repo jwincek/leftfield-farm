@@ -2,15 +2,12 @@
 /**
  * Server-side render for lfuf/availability-board.
  *
- * Accessibility improvements:
- *   - <section> landmark with aria-label
- *   - Filter groups wrapped in role="toolbar" with aria-label
- *   - Filter buttons have aria-pressed state bound via Interactivity API
- *   - Footer count is aria-live="polite" for filter change announcements
- *   - Product items use <article> with aria-label for full context
- *   - Product links include screen-reader-only status context
- *   - Group count badges have aria-hidden (visual only, announced via footer)
- *   - screen-reader-text class for visually hidden labels
+ * Fix: Groups and items are ALWAYS rendered visible in the initial HTML.
+ * The Interactivity API handles show/hide client-side after hydration.
+ * This avoids SSR issues where getElement() returns null.
+ *
+ * Fix: Filter buttons and groups use per-element data-wp-context to pass
+ * slugs, avoiding hyphenated property names in state getters.
  *
  * @var array    $attributes
  * @var string   $content
@@ -41,18 +38,13 @@ $filter_types = $board['filter_types'] ?? [];
 $statuses     = $board['statuses'] ?? [];
 $total        = $board['total_items'] ?? 0;
 
-// Parse default active statuses.
 $active_statuses = array_filter(array_map('trim', explode(',', $default_status)));
 
-// Interactivity API context.
+// Root context — shared board state.
 $context = [
     'activeStatuses'   => $active_statuses,
     'activeType'       => '',
     'totalItems'       => $total,
-    'visibleCount'     => $total,
-    'showImages'       => $show_images,
-    'showPrices'       => $show_prices,
-    'showNotes'        => $show_quantity_notes,
     'layout'           => $layout,
     'restBase'         => esc_url_raw(rest_url('lfuf/v1')),
 ];
@@ -83,22 +75,22 @@ $wrapper_attrs = get_block_wrapper_attributes([
                     role="toolbar"
                     aria-label="<?php esc_attr_e('Filter by availability status', 'leftfield-farm'); ?>"
                 >
-                    <span class="lfuf-avail-board__filter-label" id="lfuf-status-filter-label">
+                    <span class="lfuf-avail-board__filter-label">
                         <?php esc_html_e('Show:', 'leftfield-farm'); ?>
                     </span>
                     <?php foreach ($statuses as $status) :
                         $is_active = in_array($status, $active_statuses, true);
-                        $label     = ucfirst(str_replace('_', ' ', $status));
                     ?>
                         <button
                             type="button"
-                            class="lfuf-avail-board__filter-btn lfuf-availability-badge lfuf-availability-badge--<?php echo esc_attr($status); ?>"
+                            class="lfuf-avail-board__filter-btn lfuf-availability-badge lfuf-availability-badge--<?php echo esc_attr($status); ?><?php echo $is_active ? ' lfuf-avail-board__filter-btn--active' : ''; ?>"
                             data-wp-on--click="actions.toggleStatus"
-                            data-wp-class--lfuf-avail-board__filter-btn--active="state.isStatusActive_<?php echo esc_attr($status); ?>"
-                            data-wp-bind--aria-pressed="state.isStatusActive_<?php echo esc_attr($status); ?>"
+                            data-wp-context='<?php echo esc_attr(wp_json_encode(['filterStatus' => $status])); ?>'
+                            data-wp-class--lfuf-avail-board__filter-btn--active="state.isCurrentStatusActive"
+                            data-wp-bind--aria-pressed="state.isCurrentStatusActive"
                             data-status="<?php echo esc_attr($status); ?>"
                             aria-pressed="<?php echo $is_active ? 'true' : 'false'; ?>"
-                        ><?php echo esc_html($label); ?></button>
+                        ><?php echo esc_html(ucfirst(str_replace('_', ' ', $status))); ?></button>
                     <?php endforeach; ?>
                 </div>
 
@@ -108,15 +100,16 @@ $wrapper_attrs = get_block_wrapper_attributes([
                         role="toolbar"
                         aria-label="<?php esc_attr_e('Filter by product type', 'leftfield-farm'); ?>"
                     >
-                        <span class="lfuf-avail-board__filter-label" id="lfuf-type-filter-label">
+                        <span class="lfuf-avail-board__filter-label">
                             <?php esc_html_e('Type:', 'leftfield-farm'); ?>
                         </span>
                         <button
                             type="button"
-                            class="lfuf-avail-board__filter-btn"
+                            class="lfuf-avail-board__filter-btn lfuf-avail-board__filter-btn--active"
                             data-wp-on--click="actions.setTypeFilter"
-                            data-wp-class--lfuf-avail-board__filter-btn--active="!context.activeType"
-                            data-wp-bind--aria-pressed="!context.activeType"
+                            data-wp-context='<?php echo esc_attr(wp_json_encode(['filterType' => ''])); ?>'
+                            data-wp-class--lfuf-avail-board__filter-btn--active="state.isCurrentTypeActive"
+                            data-wp-bind--aria-pressed="state.isCurrentTypeActive"
                             data-type-slug=""
                             aria-pressed="true"
                         ><?php esc_html_e('All', 'leftfield-farm'); ?></button>
@@ -125,8 +118,9 @@ $wrapper_attrs = get_block_wrapper_attributes([
                                 type="button"
                                 class="lfuf-avail-board__filter-btn"
                                 data-wp-on--click="actions.setTypeFilter"
-                                data-wp-class--lfuf-avail-board__filter-btn--active="state.isTypeActive_<?php echo esc_attr($ft['slug']); ?>"
-                                data-wp-bind--aria-pressed="state.isTypeActive_<?php echo esc_attr($ft['slug']); ?>"
+                                data-wp-context='<?php echo esc_attr(wp_json_encode(['filterType' => $ft['slug']])); ?>'
+                                data-wp-class--lfuf-avail-board__filter-btn--active="state.isCurrentTypeActive"
+                                data-wp-bind--aria-pressed="state.isCurrentTypeActive"
                                 data-type-slug="<?php echo esc_attr($ft['slug']); ?>"
                                 aria-pressed="false"
                             ><?php echo esc_html($ft['label']); ?></button>
@@ -141,21 +135,21 @@ $wrapper_attrs = get_block_wrapper_attributes([
             <div
                 class="lfuf-avail-board__group"
                 data-type-slug="<?php echo esc_attr($group['slug']); ?>"
-                data-wp-bind--hidden="state.isGroupHidden_<?php echo esc_attr($group['slug']); ?>"
+                data-wp-context='<?php echo esc_attr(wp_json_encode(['groupSlug' => $group['slug']])); ?>'
+                data-wp-bind--hidden="state.isCurrentGroupHidden"
             >
                 <h3 class="lfuf-avail-board__group-title">
                     <?php echo esc_html($group['label']); ?>
                     <span
                         class="lfuf-avail-board__group-count"
                         aria-hidden="true"
-                        data-wp-text="state.groupCount_<?php echo esc_attr($group['slug']); ?>"
+                        data-wp-text="state.currentGroupCount"
                     ><?php echo count($group['items']); ?></span>
                 </h3>
 
                 <div class="lfuf-avail-board__items lfuf-avail-board__items--<?php echo esc_attr($layout); ?>">
                     <?php foreach ($group['items'] as $item) :
                         $status_text = ucfirst(str_replace('_', ' ', $item['status']));
-                        // Build a rich aria-label for each item.
                         $aria_parts = [$item['product_name'], $status_text];
                         if ($show_prices && $item['price']) {
                             $price_str = $item['price'];
@@ -168,12 +162,19 @@ $wrapper_attrs = get_block_wrapper_attributes([
                             $aria_parts[] = $item['quantity_note'];
                         }
                         $item_aria_label = implode(' — ', $aria_parts);
+
+                        // Per-item context with its status and type for filtering.
+                        $item_context = [
+                            'itemStatus' => $item['status'],
+                            'itemType'   => $item['product_slugs'][0] ?? '',
+                        ];
                     ?>
                         <article
                             class="lfuf-avail-board__item"
                             data-status="<?php echo esc_attr($item['status']); ?>"
                             data-type-slug="<?php echo esc_attr($item['product_slugs'][0] ?? ''); ?>"
-                            data-wp-bind--hidden="state.isItemHidden"
+                            data-wp-context='<?php echo esc_attr(wp_json_encode($item_context)); ?>'
+                            data-wp-bind--hidden="state.isCurrentItemHidden"
                             data-product-id="<?php echo (int) $item['product_id']; ?>"
                             aria-label="<?php echo esc_attr($item_aria_label); ?>"
                         >
@@ -229,7 +230,7 @@ $wrapper_attrs = get_block_wrapper_attributes([
             </div>
         <?php endforeach; ?>
 
-        <!-- ── Board footer (live region for filter announcements) ── -->
+        <!-- ── Board footer ── -->
         <p class="lfuf-avail-board__footer" aria-live="polite" aria-atomic="true">
             <span data-wp-text="state.footerText">
                 <?php printf(
