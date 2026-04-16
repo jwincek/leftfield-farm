@@ -2,9 +2,8 @@
 /**
  * Server-side render for lfuf/availability-badge.
  *
- * @var array    $attributes
- * @var string   $content
- * @var WP_Block $block
+ * Accessibility: screen-reader label "Availability:" before the badge,
+ * role="status" on the wrapper for context.
  */
 
 declare(strict_types=1);
@@ -24,17 +23,28 @@ if (empty($rows)) {
     return;
 }
 
-// Use the most recent row.
-$row = $rows[0];
+$row         = $rows[0];
+$status_text = ucfirst(str_replace('_', ' ', $row->status));
+$product     = get_post($product_id);
+$product_name = $product ? $product->post_title : '';
 
 $wrapper_attrs = get_block_wrapper_attributes([
     'class' => 'lfuf-availability-badge-wrapper',
 ]);
 ?>
 
-<span <?php echo $wrapper_attrs; ?>>
+<span <?php echo $wrapper_attrs; ?> role="status">
+    <span class="screen-reader-text">
+        <?php
+        if ($product_name) {
+            printf(esc_html__('%s availability:', 'leftfield-farm'), esc_html($product_name));
+        } else {
+            esc_html_e('Availability:', 'leftfield-farm');
+        }
+        ?>
+    </span>
     <span class="lfuf-availability-badge lfuf-availability-badge--<?php echo esc_attr($row->status); ?>">
-        <?php echo esc_html(ucfirst(str_replace('_', ' ', $row->status))); ?>
+        <?php echo esc_html($status_text); ?>
     </span>
     <?php if ($row->quantity_note) : ?>
         <span class="lfuf-availability-badge__note"><?php echo esc_html($row->quantity_note); ?></span>

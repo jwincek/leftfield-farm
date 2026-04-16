@@ -1,6 +1,5 @@
 /**
  * Availability Badge — standalone styles.
- * Badge color classes are defined in product-card/style.css and shared.
  */
 
 .lfuf-availability-badge-wrapper {
@@ -12,4 +11,19 @@
 .lfuf-availability-badge__note {
     font-size: 0.8rem;
     opacity: 0.7;
+}
+
+/* ── Accessibility ─────────────────────────────── */
+
+.lfuf-availability-badge-wrapper .screen-reader-text {
+    border: 0; clip: rect(1px, 1px, 1px, 1px); clip-path: inset(50%);
+    height: 1px; margin: -1px; overflow: hidden; padding: 0;
+    position: absolute; width: 1px; word-wrap: normal !important;
+}
+
+@media (forced-colors: active) {
+    .lfuf-availability-badge {
+        forced-color-adjust: none;
+        border: 1px solid CanvasText;
+    }
 }

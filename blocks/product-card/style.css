@@ -36,6 +36,10 @@
     color: inherit;
 }
 
+.lfuf-product-card__title a:hover {
+    text-decoration: underline;
+}
+
 .lfuf-product-card__type {
     display: inline-block;
     font-size: 0.75rem;
@@ -75,8 +79,6 @@
     opacity: 0.8;
 }
 
-/* ── Availability badges ── */
-
 .lfuf-product-card__availability {
     margin-top: 0.75rem;
     display: flex;
@@ -106,8 +108,6 @@
     opacity: 0.7;
 }
 
-/* ── Sources ── */
-
 .lfuf-product-card__sources {
     margin-top: 0.75rem;
     font-size: 0.85rem;
@@ -122,14 +122,44 @@
     font-size: 0.8rem;
 }
 
-/* ── Responsive ── */
-
 @media (max-width: 480px) {
     .lfuf-product-card {
         flex-direction: column;
     }
-
     .lfuf-product-card__image {
         flex: none;
+    }
+}
+
+
+/* ── Accessibility ─────────────────────────────── */
+
+.lfuf-product-card .screen-reader-text {
+    border: 0; clip: rect(1px, 1px, 1px, 1px); clip-path: inset(50%);
+    height: 1px; margin: -1px; overflow: hidden; padding: 0;
+    position: absolute; width: 1px; word-wrap: normal !important;
+}
+
+.lfuf-product-card__title a:focus-visible,
+.lfuf-product-card__source a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lfuf-product-card { transition: none; }
+}
+
+@media (forced-colors: active) {
+    .lfuf-product-card { border-color: CanvasText; }
+    .lfuf-product-card__title a { color: LinkText; }
+    .lfuf-product-card__source a { color: LinkText; }
+    .lfuf-availability-badge {
+        forced-color-adjust: none;
+        border: 1px solid CanvasText;
+    }
+    .lfuf-product-card__season-badge {
+        forced-color-adjust: none;
+        border: 1px solid CanvasText;
     }
 }

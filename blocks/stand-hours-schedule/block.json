@@ -2,12 +2,12 @@
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
     "name": "lfuf/stand-hours-schedule",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "title": "Stand Hours Schedule",
     "category": "leftfield",
     "icon": "clock",
     "description": "Display the stand's weekly schedule with visual indicators for today's hours. Reads from the stand's schedule meta.",
-    "textdomain": "leftfield-stand-status",
+    "textdomain": "leftfield-farm",
     "attributes": {
         "locationId": {
             "type": "number",
@@ -28,6 +28,18 @@
         "spacing": {
             "margin": true,
             "padding": true
+        },
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            }
         }
     },
     "editorScript": "file:./index.js",

@@ -2,9 +2,9 @@
 /**
  * Server-side render for lfuf/location-info.
  *
- * @var array    $attributes
- * @var string   $content
- * @var WP_Block $block
+ * Accessibility: <section> with aria-label, screen-reader labels
+ * on address/hours, new-tab warning on Venmo link, role="status"
+ * on open/closed badge.
  */
 
 declare(strict_types=1);
@@ -20,7 +20,6 @@ if ($location_id < 1) {
 }
 
 $location = get_post($location_id);
-
 if (! $location || $location->post_type !== 'lfuf_location' || $location->post_status !== 'publish') {
     return;
 }
@@ -34,17 +33,26 @@ $is_open       = (bool) get_post_meta($location_id, '_lfuf_is_open', true);
 $wrapper_attrs = get_block_wrapper_attributes([
     'class' => 'lfuf-location-info',
 ]);
+
+$section_label = sprintf(
+    /* translators: %s = location name */
+    __('%s — Location Details', 'leftfield-farm'),
+    $location->post_title,
+);
 ?>
 
-<div <?php echo $wrapper_attrs; ?>>
+<section <?php echo $wrapper_attrs; ?> aria-label="<?php echo esc_attr($section_label); ?>">
     <div class="lfuf-location-info__header">
         <h3 class="lfuf-location-info__title">
             <?php echo esc_html($location->post_title); ?>
         </h3>
 
         <?php if ($show_status) : ?>
-            <span class="lfuf-location-info__status lfuf-location-info__status--<?php echo $is_open ? 'open' : 'closed'; ?>">
-                <?php echo $is_open ? esc_html__('Open Now', 'leftfield-core') : esc_html__('Closed', 'leftfield-core'); ?>
+            <span
+                class="lfuf-location-info__status lfuf-location-info__status--<?php echo $is_open ? 'open' : 'closed'; ?>"
+                role="status"
+            >
+                <?php echo $is_open ? esc_html__('Open Now', 'leftfield-farm') : esc_html__('Closed', 'leftfield-farm'); ?>
             </span>
         <?php endif; ?>
     </div>
@@ -56,11 +64,17 @@ $wrapper_attrs = get_block_wrapper_attributes([
     <?php endif; ?>
 
     <?php if ($address) : ?>
-        <p class="lfuf-location-info__address"><?php echo esc_html($address); ?></p>
+        <p class="lfuf-location-info__address">
+            <span class="screen-reader-text"><?php esc_html_e('Address:', 'leftfield-farm'); ?> </span>
+            <?php echo esc_html($address); ?>
+        </p>
     <?php endif; ?>
 
     <?php if ($hours) : ?>
-        <p class="lfuf-location-info__hours"><?php echo esc_html($hours); ?></p>
+        <p class="lfuf-location-info__hours">
+            <span class="screen-reader-text"><?php esc_html_e('Hours:', 'leftfield-farm'); ?> </span>
+            <?php echo esc_html($hours); ?>
+        </p>
     <?php endif; ?>
 
     <?php if ($show_venmo && $venmo_handle) : ?>
@@ -70,7 +84,8 @@ $wrapper_attrs = get_block_wrapper_attributes([
             target="_blank"
             rel="noopener noreferrer"
         >
-            <?php printf(esc_html__('Pay via Venmo (@%s)', 'leftfield-core'), esc_html(ltrim($venmo_handle, '@'))); ?>
+            <?php printf(esc_html__('Pay via Venmo (@%s)', 'leftfield-farm'), esc_html(ltrim($venmo_handle, '@'))); ?>
+            <span class="screen-reader-text"><?php esc_html_e('(opens in a new tab)', 'leftfield-farm'); ?></span>
         </a>
     <?php endif; ?>
-</div>
+</section>

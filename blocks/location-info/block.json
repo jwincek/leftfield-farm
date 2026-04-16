@@ -2,12 +2,12 @@
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
     "name": "lfuf/location-info",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "title": "Location Info",
     "category": "leftfield",
     "icon": "store",
     "description": "Display a Leftfield location with open/closed status, hours, address, and Venmo link.",
-    "textdomain": "leftfield-core",
+    "textdomain": "leftfield-farm",
     "attributes": {
         "locationId": {
             "type": "number",
@@ -32,6 +32,18 @@
         "spacing": {
             "margin": true,
             "padding": true
+        },
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            }
         }
     },
     "editorScript": "file:./index.js",

@@ -77,3 +77,30 @@
     background: #008CFF;
     color: #fff;
 }
+
+
+/* ── Accessibility ─────────────────────────────── */
+
+.lfuf-location-info .screen-reader-text {
+    border: 0; clip: rect(1px, 1px, 1px, 1px); clip-path: inset(50%);
+    height: 1px; margin: -1px; overflow: hidden; padding: 0;
+    position: absolute; width: 1px; word-wrap: normal !important;
+}
+
+.lfuf-location-info__venmo:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lfuf-location-info__venmo { transition: none; }
+}
+
+@media (forced-colors: active) {
+    .lfuf-location-info { border-color: CanvasText; }
+    .lfuf-location-info__venmo { border-color: LinkText; color: LinkText; }
+    .lfuf-location-info__status {
+        forced-color-adjust: none;
+        border: 1px solid CanvasText;
+    }
+}
