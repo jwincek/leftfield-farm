@@ -20,6 +20,8 @@ require_once $module_dir . '/includes/meta-fields.php';
 require_once $module_dir . '/includes/availability-table.php';
 require_once $module_dir . '/includes/rest-api.php';
 require_once $module_dir . '/includes/abilities.php';
+require_once $module_dir . '/includes/single-content.php';
+require_once $module_dir . '/includes/single-styles.php';
 
 /**
  * Init hook: register all data structures.
