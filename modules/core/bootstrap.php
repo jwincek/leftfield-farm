@@ -23,6 +23,7 @@ require_once $module_dir . '/includes/abilities.php';
 require_once $module_dir . '/includes/single-content.php';
 require_once $module_dir . '/includes/single-styles.php';
 require_once $module_dir . '/includes/admin-columns.php';
+require_once $module_dir . '/includes/product-import-export.php';
 
 /**
  * Init hook: register all data structures.
