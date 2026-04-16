@@ -4,8 +4,8 @@
  * Plugin URI:        https://github.com/jwincek/leftfield-farm
  * Description:       Custom data layer, blocks, and tools for Leftfield Urban Farm + Slowbird Bread Co.
  * Version:           1.0.0
- * Requires at least: 6.5
- * Requires PHP:      8.1
+ * Requires at least: 6.9
+ * Requires PHP:      8.3
  * Author:            Jerome Wincek
  * Author URI:        https://github.com/jwincek
  * License:           GPL-2.0-or-later
@@ -55,9 +55,12 @@ function get_registered_modules(): array {
             'bootstrap' => PLUGIN_DIR . '/modules/event-manager/bootstrap.php',
             'required'  => false,
         ],
+        'notifications' => [
+            'label'     => __('Notifications', 'leftfield-farm'),
+            'bootstrap' => PLUGIN_DIR . '/modules/notifications/bootstrap.php',
+            'required'  => false,
+        ],
         // Future modules:
-        // 'availability-board' => [ ... ],
-        // 'event-manager'      => [ ... ],
         // 'grain-stories'      => [ ... ],
         // 'pre-order-builder'  => [ ... ],
     ];
