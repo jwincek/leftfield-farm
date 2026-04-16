@@ -343,3 +343,105 @@
         width: 100%;
     }
 }
+
+
+/* =================================================
+ * ACCESSIBILITY
+ * ================================================= */
+
+/* ── Honeypot field — hidden from humans ───────── */
+
+.lfuf-event-card__rsvp-hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ── Screen reader text ────────────────────────── */
+
+.lfuf-event-list .screen-reader-text,
+.lfuf-event-card .screen-reader-text,
+.lfuf-event-card-wrapper .screen-reader-text {
+    border: 0;
+    clip: rect(1px, 1px, 1px, 1px);
+    clip-path: inset(50%);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+    word-wrap: normal !important;
+}
+
+/* ── Focus styles ──────────────────────────────── */
+
+.lfuf-event-card__title a:focus-visible,
+.lfuf-event-card__donate-link:focus-visible,
+.lfuf-event-card__rsvp-btn:focus-visible,
+.lfuf-event-card__rsvp-cancel-btn:focus-visible,
+.lfuf-event-list__filter-btn:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.lfuf-event-card__rsvp-input:focus-visible,
+.lfuf-event-card__rsvp-size:focus-visible {
+    outline: 2px solid #16a34a;
+    outline-offset: 1px;
+}
+
+/* ── Reduced motion ────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+    .lfuf-event-card,
+    .lfuf-event-card__rsvp-btn,
+    .lfuf-event-card__donate-link {
+        transition: none;
+    }
+}
+
+/* ── High contrast mode ────────────────────────── */
+
+@media (forced-colors: active) {
+    .lfuf-event-card {
+        border-color: CanvasText;
+    }
+
+    .lfuf-event-card--cancelled {
+        border-left-color: LinkText;
+    }
+
+    .lfuf-event-card__type-badge,
+    .lfuf-event-card__cancelled-badge {
+        forced-color-adjust: none;
+        border: 1px solid CanvasText;
+    }
+
+    .lfuf-event-card__title a {
+        color: LinkText;
+    }
+
+    .lfuf-event-card__rsvp-btn {
+        forced-color-adjust: none;
+        border: 1px solid ButtonText;
+    }
+
+    .lfuf-event-card__donate-link {
+        border-color: LinkText;
+        color: LinkText;
+    }
+
+    .lfuf-event-list__filter-btn {
+        border-color: ButtonText;
+    }
+
+    .lfuf-event-list__filter-btn--active {
+        background: Highlight;
+        color: HighlightText;
+    }
+}

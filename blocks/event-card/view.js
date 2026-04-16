@@ -40,6 +40,9 @@ store( 'leftfield/event-list', {
         updateRsvpSize( event ) {
             getContext().rsvpSize = Math.max( 1, parseInt( event.target.value ) || 1 );
         },
+        updateHoneypot( event ) {
+            getContext()._hp = event.target.value;
+        },
         *submitRsvp() {
             const ctx = getContext();
             if ( ! ctx.rsvpName.trim() ) {
@@ -59,6 +62,7 @@ store( 'leftfield/event-list', {
                             email: ctx.rsvpEmail,
                             party_size: ctx.rsvpSize,
                             note: ctx.rsvpNote,
+                            website: ctx._hp || '',
                         } ),
                     },
                 );

@@ -82,6 +82,14 @@ store( 'leftfield/event-list', {
         },
 
         /**
+         * Track honeypot field — bots fill this, humans don't see it.
+         */
+        updateHoneypot( event ) {
+            const ctx = getContext();
+            ctx._hp = event.target.value;
+        },
+
+        /**
          * Submit an RSVP via the REST API.
          */
         *submitRsvp() {
@@ -106,6 +114,7 @@ store( 'leftfield/event-list', {
                             email: ctx.rsvpEmail,
                             party_size: ctx.rsvpSize,
                             note: ctx.rsvpNote,
+                            website: ctx._hp || '', // Honeypot field.
                         } ),
                     },
                 );

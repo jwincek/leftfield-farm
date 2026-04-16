@@ -4,7 +4,7 @@
  *
  * Adds endpoints for:
  *  - Listing upcoming/past events with enriched data
- *  - Submitting and cancelling RSVPs (public, no auth required)
+ *  - Submitting and cancelling RSVPs (public, with rate limiting)
  *  - Viewing RSVP list (editor+ only)
  */
 
@@ -21,25 +21,16 @@ add_action('rest_api_init', __NAMESPACE__ . '\\register_routes');
 function register_routes(): void {
     $ns = 'lfuf/v1';
 
-    /**
-     * GET /lfuf/v1/events/upcoming
-     *
-     * Public list of upcoming events with location, RSVP summary,
-     * event type, and display metadata.
-     */
     register_rest_route($ns, '/events/upcoming', [
         'methods'             => \WP_REST_Server::READABLE,
         'callback'            => __NAMESPACE__ . '\\get_upcoming_events',
         'permission_callback' => '__return_true',
         'args'                => [
-            'per_page' => ['type' => 'integer', 'default' => 10, 'sanitize_callback' => 'absint'],
+            'per_page'   => ['type' => 'integer', 'default' => 10, 'sanitize_callback' => 'absint'],
             'event_type' => ['type' => 'string', 'default' => ''],
         ],
     ]);
 
-    /**
-     * GET /lfuf/v1/events/past
-     */
     register_rest_route($ns, '/events/past', [
         'methods'             => \WP_REST_Server::READABLE,
         'callback'            => __NAMESPACE__ . '\\get_past_events',
@@ -52,7 +43,11 @@ function register_routes(): void {
     /**
      * POST /lfuf/v1/events/{id}/rsvp
      *
-     * Public RSVP submission. No auth — just a name.
+     * Public RSVP submission with:
+     *   - Honeypot field check (silent rejection)
+     *   - IP-based rate limiting
+     *   - Duplicate name detection
+     *   - Atomic cap enforcement
      */
     register_rest_route($ns, '/events/(?P<id>\d+)/rsvp', [
         'methods'             => \WP_REST_Server::CREATABLE,
@@ -64,14 +59,10 @@ function register_routes(): void {
             'email'      => ['type' => 'string',  'default'  => ''],
             'party_size' => ['type' => 'integer', 'default'  => 1, 'sanitize_callback' => 'absint'],
             'note'       => ['type' => 'string',  'default'  => ''],
+            'website'    => ['type' => 'string',  'default'  => ''], // Honeypot field.
         ],
     ]);
 
-    /**
-     * DELETE /lfuf/v1/rsvp/{token}
-     *
-     * Cancel an RSVP by its token. Public — the token is the auth.
-     */
     register_rest_route($ns, '/rsvp/(?P<token>[a-zA-Z0-9]+)', [
         'methods'             => \WP_REST_Server::DELETABLE,
         'callback'            => __NAMESPACE__ . '\\cancel_rsvp',
@@ -81,11 +72,6 @@ function register_routes(): void {
         ],
     ]);
 
-    /**
-     * GET /lfuf/v1/events/{id}/rsvps
-     *
-     * Admin view of all RSVPs for an event.
-     */
     register_rest_route($ns, '/events/(?P<id>\d+)/rsvps', [
         'methods'             => \WP_REST_Server::READABLE,
         'callback'            => __NAMESPACE__ . '\\get_event_rsvps',
@@ -183,16 +169,23 @@ function submit_rsvp(\WP_REST_Request $request): \WP_REST_Response {
         'email'      => $request->get_param('email'),
         'party_size' => $request->get_param('party_size'),
         'note'       => $request->get_param('note'),
+        'honeypot'   => $request->get_param('website'), // Honeypot field.
     ]);
 
     if (is_wp_error($result)) {
+        $status_code = match ($result->get_error_code()) {
+            'rate_limited'   => 429,
+            'duplicate_rsvp' => 409,
+            'rsvp_full'      => 409,
+            default          => 400,
+        };
+
         return new \WP_REST_Response(
             ['message' => $result->get_error_message(), 'code' => $result->get_error_code()],
-            400,
+            $status_code,
         );
     }
 
-    // Return the public-facing data (token for cancellation, summary).
     $summary = RSVP\get_event_rsvp_summary($request->get_param('id'));
 
     return new \WP_REST_Response([
