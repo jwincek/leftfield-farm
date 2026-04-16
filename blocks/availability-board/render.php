@@ -2,12 +2,13 @@
 /**
  * Server-side render for lfuf/availability-board.
  *
- * Fix: Groups and items are ALWAYS rendered visible in the initial HTML.
- * The Interactivity API handles show/hide client-side after hydration.
- * This avoids SSR issues where getElement() returns null.
+ * Fix: activeStatuses and activeType are initialized as store state
+ * via wp_interactivity_state(), NOT as context. This avoids the
+ * Interactivity API context inheritance issue where child context
+ * writes don't propagate to sibling elements.
  *
- * Fix: Filter buttons and groups use per-element data-wp-context to pass
- * slugs, avoiding hyphenated property names in state getters.
+ * Context is used ONLY for per-element data (filterStatus, filterType,
+ * groupSlug, itemStatus, itemType) that is read-only.
  *
  * @var array    $attributes
  * @var string   $content
@@ -40,13 +41,21 @@ $total        = $board['total_items'] ?? 0;
 
 $active_statuses = array_filter(array_map('trim', explode(',', $default_status)));
 
-// Root context — shared board state.
+/**
+ * Initialize shared filter state via wp_interactivity_state().
+ * This lives in the store, NOT in context, so all elements
+ * read from and write to the same state.
+ */
+wp_interactivity_state('leftfield/availability-board', [
+    'activeStatuses' => $active_statuses,
+    'activeType'     => '',
+    'totalItems'     => $total,
+]);
+
+// Context only carries per-block config, not shared filter state.
 $context = [
-    'activeStatuses'   => $active_statuses,
-    'activeType'       => '',
-    'totalItems'       => $total,
-    'layout'           => $layout,
-    'restBase'         => esc_url_raw(rest_url('lfuf/v1')),
+    'layout'  => $layout,
+    'restBase' => esc_url_raw(rest_url('lfuf/v1')),
 ];
 
 $wrapper_attrs = get_block_wrapper_attributes([
@@ -163,7 +172,6 @@ $wrapper_attrs = get_block_wrapper_attributes([
                         }
                         $item_aria_label = implode(' — ', $aria_parts);
 
-                        // Per-item context with its status and type for filtering.
                         $item_context = [
                             'itemStatus' => $item['status'],
                             'itemType'   => $item['product_slugs'][0] ?? '',

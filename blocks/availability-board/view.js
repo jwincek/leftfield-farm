@@ -1,55 +1,66 @@
 /**
  * Availability Board — Interactivity API view module.
  *
- * Fix 1: All filtering uses context-based getters instead of per-slug
- * hardcoded getters. Each filter button, group, and item has its own
- * data-wp-context with the relevant slug. State getters read from
- * getContext() which works with any slug including hyphens.
+ * KEY ARCHITECTURE:
  *
- * Fix 2: Group visibility and counts use context-based lookups
- * instead of getElement() + DOM queries, so they work during SSR
- * (where getElement() returns null).
+ * Shared filter state (activeStatuses, activeType, totalItems) lives
+ * in the STORE STATE, initialized server-side via wp_interactivity_state().
+ * All elements read from and write to this single source of truth.
+ *
+ * Per-element data (filterStatus, filterType, groupSlug, itemStatus,
+ * itemType) lives in CONTEXT via data-wp-context on each element.
+ * These are read-only identifiers — never written to by actions.
+ *
+ * This avoids the Interactivity API context inheritance issue where
+ * writing to a child context doesn't propagate to sibling elements.
  *
  * Store namespace: leftfield/availability-board
  */
 
 import { store, getContext, getElement } from '@wordpress/interactivity';
 
-store( 'leftfield/availability-board', {
+const { state } = store( 'leftfield/availability-board', {
     state: {
+        // These are initialized by wp_interactivity_state() in render.php.
+        activeStatuses: [],
+        activeType: '',
+        totalItems: 0,
+
         /**
          * Is this status filter button's status in the active list?
-         * Each button has data-wp-context='{"filterStatus": "abundant"}'.
+         * Reads filterStatus from the button's context.
+         * Reads activeStatuses from store state.
          */
         get isCurrentStatusActive() {
             const ctx = getContext();
-            return ctx.activeStatuses.includes( ctx.filterStatus );
+            return state.activeStatuses.includes( ctx.filterStatus );
         },
 
         /**
          * Is this type filter button's type the active type?
-         * Each button has data-wp-context='{"filterType": "bread"}'.
-         * The "All" button has filterType: "".
+         * Reads filterType from the button's context.
+         * Reads activeType from store state.
          */
         get isCurrentTypeActive() {
             const ctx = getContext();
-            return ctx.activeType === ctx.filterType;
+            return state.activeType === ctx.filterType;
         },
 
         /**
-         * Should this item be hidden based on current filters?
-         * Each item has data-wp-context='{"itemStatus":"abundant","itemType":"produce"}'.
+         * Should this item be hidden?
+         * Reads itemStatus/itemType from the item's context.
+         * Reads activeStatuses/activeType from store state.
          */
         get isCurrentItemHidden() {
             const ctx = getContext();
 
-            // Status filter: hide if item's status is not in active list.
-            if ( ctx.activeStatuses.length > 0 && ! ctx.activeStatuses.includes( ctx.itemStatus ) ) {
+            // Status filter.
+            if ( state.activeStatuses.length > 0 && ! state.activeStatuses.includes( ctx.itemStatus ) ) {
                 return true;
             }
 
-            // Type filter: hide if a type is selected and item doesn't match.
-            if ( ctx.activeType && ctx.itemType !== ctx.activeType ) {
+            // Type filter.
+            if ( state.activeType && ctx.itemType !== state.activeType ) {
                 return true;
             }
 
@@ -58,42 +69,32 @@ store( 'leftfield/availability-board', {
 
         /**
          * Should this group be hidden?
-         * Each group has data-wp-context='{"groupSlug": "produce"}'.
-         *
-         * A group is hidden when:
-         *   - A type filter is active and this group doesn't match, OR
-         *   - All items in the group would be hidden by status filter.
-         *
-         * We check items by querying the DOM from the group element,
-         * but only client-side. During SSR getElement() returns null
-         * and we return false (show everything).
+         * Reads groupSlug from the group's context.
          */
         get isCurrentGroupHidden() {
             const ctx = getContext();
             const groupSlug = ctx.groupSlug;
 
             // If a type filter is active and this group doesn't match.
-            if ( ctx.activeType && ctx.activeType !== groupSlug ) {
+            if ( state.activeType && state.activeType !== groupSlug ) {
                 return true;
             }
 
             // Check if any items in this group pass the status filter.
-            // Use DOM query from the group element.
             const { ref } = getElement();
             if ( ! ref ) {
-                // SSR or not yet hydrated — show everything.
-                return false;
+                return false; // SSR fallback — show everything.
             }
 
             const items = ref.querySelectorAll( '.lfuf-avail-board__item' );
             for ( const item of items ) {
                 const itemStatus = item.dataset.status;
-                if ( ctx.activeStatuses.length === 0 || ctx.activeStatuses.includes( itemStatus ) ) {
-                    return false; // At least one item is visible.
+                if ( state.activeStatuses.length === 0 || state.activeStatuses.includes( itemStatus ) ) {
+                    return false; // At least one item visible.
                 }
             }
 
-            return true; // No items pass the filter.
+            return true; // No items pass.
         },
 
         /**
@@ -104,12 +105,9 @@ store( 'leftfield/availability-board', {
             const groupSlug = ctx.groupSlug;
             const { ref } = getElement();
 
-            if ( ! ref ) {
-                return ''; // SSR — the PHP already rendered the count.
-            }
+            if ( ! ref ) return '';
 
-            // If type filter excludes this group, count is 0.
-            if ( ctx.activeType && ctx.activeType !== groupSlug ) {
+            if ( state.activeType && state.activeType !== groupSlug ) {
                 return '0';
             }
 
@@ -117,7 +115,7 @@ store( 'leftfield/availability-board', {
             let count = 0;
             for ( const item of items ) {
                 const itemStatus = item.dataset.status;
-                if ( ctx.activeStatuses.length === 0 || ctx.activeStatuses.includes( itemStatus ) ) {
+                if ( state.activeStatuses.length === 0 || state.activeStatuses.includes( itemStatus ) ) {
                     count++;
                 }
             }
@@ -126,19 +124,18 @@ store( 'leftfield/availability-board', {
         },
 
         /**
-         * Footer text — total visible count.
+         * Footer text.
          */
         get footerText() {
-            const ctx = getContext();
             const { ref } = getElement();
 
             if ( ! ref ) {
-                return `Showing ${ ctx.totalItems } items`;
+                return `Showing ${ state.totalItems } items`;
             }
 
             const board = ref.closest( '[data-wp-interactive="leftfield/availability-board"]' );
             if ( ! board ) {
-                return `Showing ${ ctx.totalItems } items`;
+                return `Showing ${ state.totalItems } items`;
             }
 
             const items = board.querySelectorAll( '.lfuf-avail-board__item' );
@@ -147,53 +144,54 @@ store( 'leftfield/availability-board', {
                 const itemStatus = item.dataset.status;
                 const itemType   = item.dataset.typeSlug;
 
-                const statusMatch = ctx.activeStatuses.length === 0 || ctx.activeStatuses.includes( itemStatus );
-                const typeMatch   = ! ctx.activeType || itemType === ctx.activeType;
+                const statusMatch = state.activeStatuses.length === 0 || state.activeStatuses.includes( itemStatus );
+                const typeMatch   = ! state.activeType || itemType === state.activeType;
 
                 if ( statusMatch && typeMatch ) {
                     count++;
                 }
             }
 
-            if ( count === ctx.totalItems ) {
+            if ( count === state.totalItems ) {
                 return `Showing ${ count } items`;
             }
-            return `Showing ${ count } of ${ ctx.totalItems } items`;
+            return `Showing ${ count } of ${ state.totalItems } items`;
         },
     },
 
     actions: {
         /**
-         * Toggle a status in the active filter list.
-         * The button's context has { filterStatus: "abundant" }.
+         * Toggle a status filter.
+         * Reads filterStatus from the button's context.
+         * Writes to state.activeStatuses (store state, shared).
          */
         toggleStatus() {
             const ctx = getContext();
             const status = ctx.filterStatus;
             if ( ! status ) return;
 
-            const idx = ctx.activeStatuses.indexOf( status );
+            const idx = state.activeStatuses.indexOf( status );
             if ( idx >= 0 ) {
-                ctx.activeStatuses = ctx.activeStatuses.filter( s => s !== status );
+                state.activeStatuses = state.activeStatuses.filter( s => s !== status );
             } else {
-                ctx.activeStatuses = [ ...ctx.activeStatuses, status ];
+                state.activeStatuses = [ ...state.activeStatuses, status ];
             }
         },
 
         /**
          * Set the product type filter.
-         * The button's context has { filterType: "bread" } or { filterType: "" }.
+         * Reads filterType from the button's context.
+         * Writes to state.activeType (store state, shared).
          */
         setTypeFilter() {
             const ctx = getContext();
-            ctx.activeType = ctx.filterType;
+            state.activeType = ctx.filterType;
         },
     },
 
     callbacks: {
         initBoard() {
-            // Board is fully rendered server-side.
-            // Client-side filtering is purely reactive via context.
+            // Fully server-rendered. Client handles filtering reactively.
         },
     },
 } );
