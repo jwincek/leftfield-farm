@@ -3,10 +3,10 @@
  *
  * activeStatuses is an object map: { abundant: true, available: true, ... }
  *
- * CRITICAL: All reads of state.activeStatuses[key] must happen DIRECTLY
- * inside getters (not in helper functions) so the Interactivity API's
- * reactive proxy can track the dependency and re-run the getter when
- * the property changes. Helper functions break the proxy tracking chain.
+ * Group visibility and counts use itemStatuses arrays embedded in each
+ * group's context by the server. This eliminates DOM queries (getElement)
+ * for group-level getters, making them work reliably during both SSR
+ * and client-side reactivity.
  *
  * Store namespace: leftfield/availability-board
  */
@@ -41,10 +41,10 @@ const { state } = store( 'leftfield/availability-board', {
          */
         get isCurrentItemHidden() {
             const ctx = getContext();
-            const map = state.activeStatuses;
 
-            // Check if any status is active.
+            // Check if any status filter is active.
             let anyActive = false;
+            const map = state.activeStatuses;
             for ( const key in map ) {
                 if ( map[ key ] ) {
                     anyActive = true;
@@ -52,7 +52,7 @@ const { state } = store( 'leftfield/availability-board', {
                 }
             }
 
-            // Status filter: if any status is active, only show matching items.
+            // Status filter.
             if ( anyActive && state.activeStatuses[ ctx.itemStatus ] !== true ) {
                 return true;
             }
@@ -67,21 +67,22 @@ const { state } = store( 'leftfield/availability-board', {
 
         /**
          * Should this group be hidden?
+         *
+         * Uses itemStatuses from the group's context (embedded by PHP)
+         * instead of DOM queries. Each status is checked directly on
+         * state.activeStatuses so the proxy tracks the dependency.
          */
         get isCurrentGroupHidden() {
             const ctx = getContext();
-            const groupSlug = ctx.groupSlug;
 
-            if ( state.activeType && state.activeType !== groupSlug ) {
+            // Type filter: hide if a different type is selected.
+            if ( state.activeType && state.activeType !== ctx.groupSlug ) {
                 return true;
             }
 
-            // Check if any items in this group pass the status filter.
-            const { ref } = getElement();
-            if ( ! ref ) return false;
-
-            const map = state.activeStatuses;
+            // Check if any status filter is active.
             let anyActive = false;
+            const map = state.activeStatuses;
             for ( const key in map ) {
                 if ( map[ key ] ) {
                     anyActive = true;
@@ -89,34 +90,35 @@ const { state } = store( 'leftfield/availability-board', {
                 }
             }
 
-            // If no status filter is active, group is visible.
+            // No status filter active → show all groups.
             if ( ! anyActive ) return false;
 
-            const items = ref.querySelectorAll( '.lfuf-avail-board__item' );
-            for ( const item of items ) {
-                // Access the specific property on the proxy so it's tracked.
-                if ( state.activeStatuses[ item.dataset.status ] === true ) {
+            // Check if any item in this group has an active status.
+            // itemStatuses is an array like ["abundant", "available", "available", "limited"]
+            // embedded in the group's context by PHP.
+            const statuses = ctx.itemStatuses || [];
+            for ( const s of statuses ) {
+                if ( state.activeStatuses[ s ] === true ) {
                     return false; // At least one item visible.
                 }
             }
 
-            return true;
+            return true; // No items pass the filter.
         },
 
         /**
          * Visible item count for this group.
+         * Uses itemStatuses from context instead of DOM queries.
          */
         get currentGroupCount() {
             const ctx = getContext();
-            const { ref } = getElement();
-            if ( ! ref ) return '';
 
             if ( state.activeType && state.activeType !== ctx.groupSlug ) {
                 return '0';
             }
 
-            const map = state.activeStatuses;
             let anyActive = false;
+            const map = state.activeStatuses;
             for ( const key in map ) {
                 if ( map[ key ] ) {
                     anyActive = true;
@@ -124,10 +126,14 @@ const { state } = store( 'leftfield/availability-board', {
                 }
             }
 
-            const items = ref.querySelectorAll( '.lfuf-avail-board__item' );
+            if ( ! anyActive ) {
+                return String( ctx.itemCount || 0 );
+            }
+
+            const statuses = ctx.itemStatuses || [];
             let count = 0;
-            for ( const item of items ) {
-                if ( ! anyActive || state.activeStatuses[ item.dataset.status ] === true ) {
+            for ( const s of statuses ) {
+                if ( state.activeStatuses[ s ] === true ) {
                     count++;
                 }
             }
@@ -136,6 +142,8 @@ const { state } = store( 'leftfield/availability-board', {
 
         /**
          * Footer text.
+         * Still uses DOM query from the footer element since it needs
+         * to count across ALL groups, not just the current one.
          */
         get footerText() {
             const { ref } = getElement();
@@ -144,8 +152,8 @@ const { state } = store( 'leftfield/availability-board', {
             const board = ref.closest( '[data-wp-interactive="leftfield/availability-board"]' );
             if ( ! board ) return `Showing ${ state.totalItems } items`;
 
-            const map = state.activeStatuses;
             let anyActive = false;
+            const map = state.activeStatuses;
             for ( const key in map ) {
                 if ( map[ key ] ) {
                     anyActive = true;
@@ -169,9 +177,6 @@ const { state } = store( 'leftfield/availability-board', {
     },
 
     actions: {
-        /**
-         * Toggle a status filter.
-         */
         toggleStatus() {
             const ctx = getContext();
             const status = ctx.filterStatus;
@@ -179,9 +184,6 @@ const { state } = store( 'leftfield/availability-board', {
             state.activeStatuses[ status ] = ! state.activeStatuses[ status ];
         },
 
-        /**
-         * Set the product type filter.
-         */
         setTypeFilter() {
             const ctx = getContext();
             state.activeType = ctx.filterType;

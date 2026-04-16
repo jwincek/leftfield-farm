@@ -132,11 +132,21 @@ $wrapper_attrs = get_block_wrapper_attributes([
             </div>
         <?php endif; ?>
 
-        <?php foreach ($groups as $group) : ?>
+        <?php foreach ($groups as $group) :
+            // Collect all item statuses in this group for the getter.
+            $group_item_statuses = array_map(
+                fn ($item) => $item['status'],
+                $group['items'],
+            );
+        ?>
             <div
                 class="lfuf-avail-board__group"
                 data-type-slug="<?php echo esc_attr($group['slug']); ?>"
-                data-wp-context='<?php echo esc_attr(wp_json_encode(['groupSlug' => $group['slug']])); ?>'
+                data-wp-context='<?php echo esc_attr(wp_json_encode([
+                    'groupSlug'    => $group['slug'],
+                    'itemStatuses' => array_values($group_item_statuses),
+                    'itemCount'    => count($group['items']),
+                ])); ?>'
                 data-wp-bind--hidden="state.isCurrentGroupHidden"
             >
                 <h3 class="lfuf-avail-board__group-title">
