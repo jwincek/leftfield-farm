@@ -126,6 +126,10 @@
     transition: box-shadow 0.15s;
 }
 
+.lfuf-avail-board--grid .lfuf-avail-board__item[hidden] {
+    display: none;
+}
+
 .lfuf-avail-board--grid .lfuf-avail-board__item:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
@@ -145,6 +149,10 @@
     padding: 0.6rem 0.75rem;
     border-bottom: 1px solid #f3f4f6;
     transition: background 0.1s;
+}
+
+.lfuf-avail-board--list .lfuf-avail-board__item[hidden] {
+    display: none;
 }
 
 .lfuf-avail-board--list .lfuf-avail-board__item:hover {
