@@ -207,11 +207,15 @@ function activate(): void {
     require_once PLUGIN_DIR . '/modules/event-manager/includes/rsvp-table.php';
     \Leftfield\EventManager\RSVP\create_table();
 
+    // Schedule daily availability cleanup.
+    \Leftfield\Core\Availability\schedule_cleanup();
+
     flush_rewrite_rules();
 }
 register_activation_hook(__FILE__, __NAMESPACE__ . '\\activate');
 
 function deactivate(): void {
+    \Leftfield\Core\Availability\unschedule_cleanup();
     flush_rewrite_rules();
 }
 register_deactivation_hook(__FILE__, __NAMESPACE__ . '\\deactivate');

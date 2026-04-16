@@ -179,3 +179,59 @@ function delete_row(int $id): bool {
     global $wpdb;
     return (bool) $wpdb->delete(table_name(), ['id' => $id], ['%d']);
 }
+
+/* ───────────────────────────────────────────────
+ * Expiration cleanup (WP-Cron)
+ * ─────────────────────────────────────────────── */
+
+/**
+ * Purge expired availability rows.
+ *
+ * Deletes any row where expires_date is in the past.
+ * Called daily via WP-Cron (lfuf_availability_cleanup).
+ *
+ * @return int Number of rows deleted.
+ */
+function purge_expired(): int {
+    global $wpdb;
+
+    $table = table_name();
+    $today = current_time('Y-m-d');
+
+    $count = (int) $wpdb->query($wpdb->prepare(
+        "DELETE FROM {$table} WHERE expires_date IS NOT NULL AND expires_date < %s",
+        $today,
+    ));
+
+    if ($count > 0) {
+        do_action('lfuf_availability_expired_purged', $count);
+    }
+
+    return $count;
+}
+
+add_action('lfuf_availability_cleanup', __NAMESPACE__ . '\\purge_expired');
+
+/**
+ * Schedule the daily cleanup cron event.
+ * Safe to call multiple times — only schedules if not already scheduled.
+ */
+function schedule_cleanup(): void {
+    if (! wp_next_scheduled('lfuf_availability_cleanup')) {
+        wp_schedule_event(
+            strtotime('tomorrow 03:00', current_time('timestamp')),
+            'daily',
+            'lfuf_availability_cleanup',
+        );
+    }
+}
+
+/**
+ * Unschedule the cleanup cron event.
+ */
+function unschedule_cleanup(): void {
+    $timestamp = wp_next_scheduled('lfuf_availability_cleanup');
+    if ($timestamp) {
+        wp_unschedule_event($timestamp, 'lfuf_availability_cleanup');
+    }
+}

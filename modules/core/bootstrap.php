@@ -31,4 +31,8 @@ add_action('init', function (): void {
     Post_Types\register();
     Taxonomies\register();
     Meta_Fields\register();
+
+    // Self-healing: ensure the availability cleanup cron is scheduled.
+    // Handles the case where the plugin was updated without reactivation.
+    Availability\schedule_cleanup();
 });
