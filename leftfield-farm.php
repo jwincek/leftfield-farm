@@ -4,8 +4,8 @@
  * Plugin URI:        https://github.com/jwincek/leftfield-farm
  * Description:       Custom data layer, blocks, and tools for Leftfield Urban Farm + Slowbird Bread Co.
  * Version:           1.0.0
- * Requires at least: 6.9
- * Requires PHP:      8.3
+ * Requires at least: 6.5
+ * Requires PHP:      8.1
  * Author:            Jerome Wincek
  * Author URI:        https://github.com/jwincek
  * License:           GPL-2.0-or-later
@@ -170,6 +170,26 @@ add_action('enqueue_block_editor_assets', function (): void {
         ),
         'before',
     );
+
+    // CPT-specific editor sidebar panels.
+    $screen = get_current_screen();
+    $post_type = $screen->post_type ?? '';
+
+    $scripts = [
+        'lfuf_location' => 'editor-location.js',
+        'lfuf_product'  => 'editor-product.js',
+        'lfuf_event'    => 'editor-event.js',
+    ];
+
+    if (isset($scripts[$post_type])) {
+        wp_enqueue_script(
+            'lfuf-editor-' . $post_type,
+            plugins_url('assets/js/' . $scripts[$post_type], __FILE__),
+            ['wp-plugins', 'wp-editor', 'wp-components', 'wp-data', 'wp-core-data', 'wp-element'],
+            filemtime(PLUGIN_DIR . '/assets/js/' . $scripts[$post_type]),
+            true,
+        );
+    }
 });
 
 /* ───────────────────────────────────────────────
