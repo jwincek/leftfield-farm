@@ -8,10 +8,10 @@
     --_lfuf-open-color: #16a34a;
     --_lfuf-open-bg: #f0fdf4;
     --_lfuf-open-border: #bbf7d0;
-    --_lfuf-closed-color: #dc2626;
+    --_lfuf-closed-color: #991b1b;
     --_lfuf-closed-bg: #fef2f2;
     --_lfuf-closed-border: #fecaca;
-    --_lfuf-muted: #6b7280;
+    --_lfuf-muted: #4b5563;
     --_lfuf-radius: 0.625rem;
 
     font-family: inherit;
@@ -46,7 +46,7 @@
 
 .lfuf-stand-banner__indicator--closed {
     background: var(--_lfuf-closed-color);
-    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+    box-shadow: 0 0 0 3px rgba(153, 27, 27, 0.15);
 }
 
 @keyframes lfuf-pulse {
