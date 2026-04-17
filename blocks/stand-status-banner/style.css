@@ -163,13 +163,15 @@
     color: #fff;
 }
 
-/* ── Editor preview hint ───────────────────────── */
+/* ── Editor loading state ─────────────────────── */
 
-.lfuf-stand-banner__editor-hint {
-    margin: 0.5rem 0 0;
-    font-size: 0.75rem;
+.lfuf-stand-banner__loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.25rem 1.5rem;
+    font-size: 0.9rem;
     color: var(--_lfuf-muted);
-    font-style: italic;
 }
 
 
