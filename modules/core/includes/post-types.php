@@ -37,7 +37,7 @@ function register_product(): void {
     register_post_type('lfuf_product', [
         'labels'              => $labels,
         'public'              => true,
-        'has_archive'         => true,
+        'has_archive'         => false,
         'rewrite'             => ['slug' => 'products', 'with_front' => false],
         'menu_icon'           => 'dashicons-carrot',
         'menu_position'       => 26,
@@ -70,7 +70,7 @@ function register_source(): void {
     register_post_type('lfuf_source', [
         'labels'              => $labels,
         'public'              => true,
-        'has_archive'         => true,
+        'has_archive'         => false,
         'rewrite'             => ['slug' => 'sources', 'with_front' => false],
         'menu_icon'           => 'dashicons-location-alt',
         'menu_position'       => 27,
@@ -132,7 +132,7 @@ function register_event(): void {
     register_post_type('lfuf_event', [
         'labels'              => $labels,
         'public'              => true,
-        'has_archive'         => true,
+        'has_archive'         => false,
         'rewrite'             => ['slug' => 'events', 'with_front' => false],
         'menu_icon'           => 'dashicons-calendar-alt',
         'menu_position'       => 29,
