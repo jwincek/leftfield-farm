@@ -7,9 +7,19 @@
 .lfuf-avail-board {
     --_lfuf-board-gap: 0.75rem;
     --_lfuf-board-radius: 0.5rem;
-    --_lfuf-muted: #6b7280;
+    --_lfuf-muted: #4b5563;
+    color: #1f2937;
     font-family: inherit;
     line-height: 1.5;
+}
+
+.lfuf-avail-board__loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    font-size: 0.9rem;
+    color: var(--_lfuf-muted);
 }
 
 .lfuf-avail-board__empty {

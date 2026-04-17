@@ -41,11 +41,23 @@ foreach ($statuses as $s) {
     $status_map->$s = in_array($s, $active_list, true);
 }
 
+// Build flat item list for pure-state footer counting (avoids DOM queries in view.js).
+$all_items = [];
+foreach ($groups as $group) {
+    foreach ($group['items'] as $item) {
+        $all_items[] = [
+            'status' => $item['status'],
+            'type'   => $item['product_slugs'][0] ?? '',
+        ];
+    }
+}
+
 wp_interactivity_state('leftfield/availability-board', [
     'activeStatuses' => $status_map,
     'allStatuses'    => array_values($statuses),
     'activeType'     => '',
     'totalItems'     => $total,
+    'allItems'       => $all_items,
 ]);
 
 $context = [
@@ -63,7 +75,6 @@ $wrapper_attrs = get_block_wrapper_attributes([
     aria-label="<?php esc_attr_e('Product Availability', 'leftfield-farm'); ?>"
     data-wp-interactive="leftfield/availability-board"
     <?php echo wp_interactivity_data_wp_context($context); ?>
-    data-wp-init="callbacks.initBoard"
 >
     <?php if ($total === 0) : ?>
         <p class="lfuf-avail-board__empty">

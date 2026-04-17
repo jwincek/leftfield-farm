@@ -15,11 +15,29 @@
  * Store namespace: leftfield/availability-board
  */
 
-import { store, getContext, getElement } from '@wordpress/interactivity';
+import { store, getContext } from '@wordpress/interactivity';
 
 const { state } = store( 'leftfield/availability-board', {
     state: {
         // NO default values here — they come from wp_interactivity_state().
+
+        /**
+         * Whether any status filter is currently active.
+         *
+         * Iterates ALL status keys so the Interactivity API proxy
+         * registers dependencies on every property — required for
+         * reactive updates when any status toggles.
+         */
+        get anyStatusActive() {
+            let active = false;
+            const keys = state.allStatuses;
+            for ( let i = 0; i < keys.length; i++ ) {
+                if ( state.activeStatuses[ keys[ i ] ] === true ) {
+                    active = true;
+                }
+            }
+            return active;
+        },
 
         get isCurrentStatusActive() {
             const ctx = getContext();
@@ -34,16 +52,7 @@ const { state } = store( 'leftfield/availability-board', {
         get isCurrentItemHidden() {
             const ctx = getContext();
 
-            // Read ALL status properties to register proxy dependencies.
-            let anyActive = false;
-            const keys = state.allStatuses;
-            for ( let i = 0; i < keys.length; i++ ) {
-                if ( state.activeStatuses[ keys[ i ] ] === true ) {
-                    anyActive = true;
-                }
-            }
-
-            if ( anyActive && state.activeStatuses[ ctx.itemStatus ] !== true ) {
+            if ( state.anyStatusActive && state.activeStatuses[ ctx.itemStatus ] !== true ) {
                 return true;
             }
 
@@ -61,15 +70,7 @@ const { state } = store( 'leftfield/availability-board', {
                 return true;
             }
 
-            let anyActive = false;
-            const keys = state.allStatuses;
-            for ( let i = 0; i < keys.length; i++ ) {
-                if ( state.activeStatuses[ keys[ i ] ] === true ) {
-                    anyActive = true;
-                }
-            }
-
-            if ( ! anyActive ) return false;
+            if ( ! state.anyStatusActive ) return false;
 
             const statuses = ctx.itemStatuses || [];
             for ( let i = 0; i < statuses.length; i++ ) {
@@ -88,15 +89,7 @@ const { state } = store( 'leftfield/availability-board', {
                 return '0';
             }
 
-            let anyActive = false;
-            const keys = state.allStatuses;
-            for ( let i = 0; i < keys.length; i++ ) {
-                if ( state.activeStatuses[ keys[ i ] ] === true ) {
-                    anyActive = true;
-                }
-            }
-
-            if ( ! anyActive ) {
+            if ( ! state.anyStatusActive ) {
                 return String( ctx.itemCount || 0 );
             }
 
@@ -111,25 +104,11 @@ const { state } = store( 'leftfield/availability-board', {
         },
 
         get footerText() {
-            let anyActive = false;
-            const keys = state.allStatuses;
-            for ( let i = 0; i < keys.length; i++ ) {
-                if ( state.activeStatuses[ keys[ i ] ] === true ) {
-                    anyActive = true;
-                }
-            }
-
-            const { ref } = getElement();
-            if ( ! ref ) return `Showing ${ state.totalItems } items`;
-
-            const board = ref.closest( '[data-wp-interactive="leftfield/availability-board"]' );
-            if ( ! board ) return `Showing ${ state.totalItems } items`;
-
-            const items = board.querySelectorAll( '.lfuf-avail-board__item' );
+            const items = state.allItems;
             let count = 0;
-            for ( const item of items ) {
-                const statusMatch = ! anyActive || state.activeStatuses[ item.dataset.status ] === true;
-                const typeMatch   = ! state.activeType || item.dataset.typeSlug === state.activeType;
+            for ( let i = 0; i < items.length; i++ ) {
+                const statusMatch = ! state.anyStatusActive || state.activeStatuses[ items[ i ].status ] === true;
+                const typeMatch   = ! state.activeType || items[ i ].type === state.activeType;
                 if ( statusMatch && typeMatch ) count++;
             }
 
@@ -152,9 +131,5 @@ const { state } = store( 'leftfield/availability-board', {
             const ctx = getContext();
             state.activeType = ctx.filterType;
         },
-    },
-
-    callbacks: {
-        initBoard() {},
     },
 } );
