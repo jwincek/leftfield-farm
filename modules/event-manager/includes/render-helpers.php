@@ -53,8 +53,9 @@ function render_event_card(array $event, bool $show_image, bool $show_rsvp, bool
     // Unique ID prefix for form label associations.
     $uid = 'lfuf-rsvp-' . $id;
 
-    // RSVP context for Interactivity API.
+    // Interactivity API context for filtering + RSVP.
     $rsvp_context = wp_json_encode([
+        'eventType'     => $type_slug,
         'eventId'       => $id,
         'rsvpName'      => '',
         'rsvpEmail'     => '',

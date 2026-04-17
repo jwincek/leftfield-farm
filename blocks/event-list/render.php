@@ -54,11 +54,14 @@ if ($all_types && ! is_wp_error($all_types)) {
 
 $has_events = ! empty($upcoming) || ! empty($past);
 
-// Interactivity API context.
-$context = [
+// Interactivity API state + context.
+wp_interactivity_state('leftfield/event-list', [
     'activeTypeFilter' => '',
-    'showPast'         => $show_past,
-    'restBase'         => esc_url_raw(rest_url('lfuf/v1')),
+]);
+
+$context = [
+    'showPast' => $show_past,
+    'restBase' => esc_url_raw(rest_url('lfuf/v1')),
 ];
 
 $wrapper_attrs = get_block_wrapper_attributes([
@@ -80,17 +83,22 @@ $wrapper_attrs = get_block_wrapper_attributes([
             <div class="lfuf-event-list__filters">
                 <button
                     type="button"
-                    class="lfuf-event-list__filter-btn"
+                    class="lfuf-event-list__filter-btn lfuf-event-list__filter-btn--active"
                     data-wp-on--click="actions.setTypeFilter"
-                    data-wp-class--lfuf-event-list__filter-btn--active="!context.activeTypeFilter"
-                    data-type-slug=""
+                    data-wp-context='<?php echo esc_attr(wp_json_encode(['filterType' => ''])); ?>'
+                    data-wp-class--lfuf-event-list__filter-btn--active="state.isCurrentTypeActive"
+                    data-wp-bind--aria-pressed="state.isCurrentTypeActive"
+                    aria-pressed="true"
                 ><?php esc_html_e('All Events', 'leftfield-farm'); ?></button>
                 <?php foreach ($filter_types as $ft) : ?>
                     <button
                         type="button"
                         class="lfuf-event-list__filter-btn"
                         data-wp-on--click="actions.setTypeFilter"
-                        data-type-slug="<?php echo esc_attr($ft['slug']); ?>"
+                        data-wp-context='<?php echo esc_attr(wp_json_encode(['filterType' => $ft['slug']])); ?>'
+                        data-wp-class--lfuf-event-list__filter-btn--active="state.isCurrentTypeActive"
+                        data-wp-bind--aria-pressed="state.isCurrentTypeActive"
+                        aria-pressed="false"
                     ><?php echo esc_html($ft['label']); ?></button>
                 <?php endforeach; ?>
             </div>

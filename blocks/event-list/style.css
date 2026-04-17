@@ -5,15 +5,26 @@
 /* ── List container ────────────────────────────── */
 
 .lfuf-event-list {
+    --_lfuf-muted: #4b5563;
+    color: #1f2937;
     font-family: inherit;
     line-height: 1.5;
 }
 
 .lfuf-event-list__empty {
     text-align: center;
-    color: #6b7280;
+    color: var(--_lfuf-muted);
     font-style: italic;
     padding: 2rem 1rem;
+}
+
+.lfuf-event-list__loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    font-size: 0.9rem;
+    color: var(--_lfuf-muted);
 }
 
 .lfuf-event-list__section {
@@ -158,7 +169,7 @@
 }
 
 .lfuf-event-card__time {
-    color: #6b7280;
+    color: var(--_lfuf-muted);
     margin-left: 0.25rem;
 }
 
@@ -175,7 +186,7 @@
 }
 
 .lfuf-event-card__address {
-    color: #6b7280;
+    color: var(--_lfuf-muted);
 }
 
 /* ── Excerpt ───────────────────────────────────── */
@@ -198,7 +209,7 @@
 
 .lfuf-event-card__cost,
 .lfuf-event-card__bring {
-    color: #6b7280;
+    color: var(--_lfuf-muted);
 }
 
 /* ── Donate link ───────────────────────────────── */
@@ -297,7 +308,7 @@
 
 .lfuf-event-card__rsvp-cancel-btn {
     font-size: 0.8rem;
-    color: #6b7280;
+    color: var(--_lfuf-muted);
     background: none;
     border: none;
     cursor: pointer;
@@ -313,7 +324,7 @@
 .lfuf-event-card__rsvp-closed {
     font-size: 0.85rem;
     font-style: italic;
-    color: #6b7280;
+    color: var(--_lfuf-muted);
     margin: 0;
 }
 

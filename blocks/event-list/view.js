@@ -9,20 +9,28 @@
  * Store namespace: leftfield/event-list
  */
 
-import { store, getContext, getElement } from '@wordpress/interactivity';
+import { store, getContext } from '@wordpress/interactivity';
 
-store( 'leftfield/event-list', {
+const { state } = store( 'leftfield/event-list', {
     state: {
+        // activeTypeFilter comes from wp_interactivity_state() — do NOT redeclare.
+
+        /**
+         * Whether the current filter button matches the active type.
+         * Used by data-wp-class and data-wp-bind--aria-pressed on buttons.
+         */
+        get isCurrentTypeActive() {
+            const ctx = getContext();
+            return state.activeTypeFilter === ctx.filterType;
+        },
+
         /**
          * Per-event visibility based on type filter.
          */
         get isEventHidden() {
             const ctx = getContext();
-            const { ref } = getElement();
-            if ( ! ref || ! ctx.activeTypeFilter ) return false;
-
-            const eventType = ref.dataset.typeSlug;
-            return eventType !== ctx.activeTypeFilter;
+            if ( ! state.activeTypeFilter ) return false;
+            return ctx.eventType !== state.activeTypeFilter;
         },
 
         /**
@@ -32,7 +40,7 @@ store( 'leftfield/event-list', {
             const ctx = getContext();
             let text = `${ ctx.headcount } people coming`;
             if ( ctx.spotsLeft !== null ) {
-                text += ` · ${ ctx.spotsLeft } spots left`;
+                text += ` \u00b7 ${ ctx.spotsLeft } spots left`;
             }
             return text;
         },
@@ -42,30 +50,18 @@ store( 'leftfield/event-list', {
          */
         get rsvpButtonText() {
             const ctx = getContext();
-            return ctx.submitting ? 'Sending…' : "I'm coming!";
+            return ctx.submitting ? 'Sending\u2026' : "I'm coming!";
         },
     },
 
     actions: {
         /**
          * Set the event type filter.
+         * Button active states + aria-pressed update reactively via directives.
          */
-        setTypeFilter( event ) {
+        setTypeFilter() {
             const ctx = getContext();
-            const slug = event.target.closest( '[data-type-slug]' )?.dataset.typeSlug ?? '';
-            ctx.activeTypeFilter = slug;
-
-            // Update button active states.
-            const board = event.target.closest( '[data-wp-interactive="leftfield/event-list"]' );
-            if ( board ) {
-                board.querySelectorAll( '.lfuf-event-list__filter-btn' ).forEach( btn => {
-                    const btnSlug = btn.dataset.typeSlug;
-                    btn.classList.toggle(
-                        'lfuf-event-list__filter-btn--active',
-                        btnSlug === slug || ( slug === '' && btnSlug === '' ),
-                    );
-                } );
-            }
+            state.activeTypeFilter = ctx.filterType;
         },
 
         /**
@@ -171,6 +167,4 @@ store( 'leftfield/event-list', {
             }
         },
     },
-
-    callbacks: {},
 } );
