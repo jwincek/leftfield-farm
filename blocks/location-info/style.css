@@ -3,10 +3,19 @@
  */
 
 .lfuf-location-info {
+    color: #1f2937;
     border: 1px solid var(--wp--preset--color--contrast, #ddd);
     border-radius: 0.5rem;
     padding: 1.25rem;
     background: var(--wp--preset--color--base, #fff);
+}
+
+.lfuf-location-info__loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #4b5563;
 }
 
 .lfuf-location-info__header {
