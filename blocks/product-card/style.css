@@ -3,12 +3,21 @@
  */
 
 .lfuf-product-card {
+    color: #1f2937;
     display: flex;
     gap: 1.25rem;
     border: 1px solid var(--wp--preset--color--contrast, #ddd);
     border-radius: 0.5rem;
     padding: 1rem;
     background: var(--wp--preset--color--base, #fff);
+}
+
+.lfuf-product-card__loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #4b5563;
 }
 
 .lfuf-product-card__image {
@@ -101,7 +110,7 @@
 .lfuf-availability-badge--available  { background: #dbeafe; color: #1e40af; }
 .lfuf-availability-badge--limited    { background: #fef3c7; color: #92400e; }
 .lfuf-availability-badge--sold_out   { background: #fee2e2; color: #991b1b; }
-.lfuf-availability-badge--unavailable { background: #f3f4f6; color: #6b7280; }
+.lfuf-availability-badge--unavailable { background: #f3f4f6; color: #4b5563; }
 
 .lfuf-product-card__quantity-note {
     font-size: 0.8rem;
