@@ -32,8 +32,7 @@ if (! $event_post || $event_post->post_type !== 'lfuf_event' || $event_post->pos
 $event_data = \Leftfield\EventManager\REST\build_event_data($event_post);
 
 $context = [
-    'activeTypeFilter' => '',
-    'restBase'         => esc_url_raw(rest_url('lfuf/v1')),
+    'restBase' => esc_url_raw(rest_url('lfuf/v1')),
 ];
 
 $wrapper_attrs = get_block_wrapper_attributes([
