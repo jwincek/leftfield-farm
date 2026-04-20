@@ -9,7 +9,7 @@
  *   - 'lfuf_notify_rsvp_added'            → bool, false to suppress
  *   - 'lfuf_notify_rsvp_cancelled'        → bool, false to suppress
  *   - 'lfuf_notify_stand_status_changed'  → bool, false to suppress
- *   - 'lfuf_notify_availability_expired'  → bool, false to suppress
+ *   - 'lfuf_notify_availability_expired'  → bool, false to suppress (default: suppressed)
  */
 
 declare(strict_types=1);
@@ -39,7 +39,30 @@ function get_recipients(): array {
 }
 
 /**
- * Send an HTML email with a plain wrapper.
+ * Convert HTML email body to a plain-text alternative.
+ *
+ * Handles links, paragraphs, line breaks, and table rows
+ * so the fallback is readable in text-only clients.
+ */
+function to_plain_text(string $html): string {
+    $text = $html;
+    // Convert links to "text (url)" format.
+    $text = preg_replace('/<a[^>]+href="([^"]*)"[^>]*>([^<]*)<\/a>/', '$2 ($1)', $text);
+    // Convert block-level closers to line breaks.
+    $text = preg_replace('/<\/p>/', "\n\n", $text);
+    $text = preg_replace('/<\/tr>/', "\n", $text);
+    $text = preg_replace('/<br\s*\/?>/', "\n", $text);
+    $text = preg_replace('/<hr[^>]*>/', "\n---\n", $text);
+    // Strip remaining tags and decode entities.
+    $text = wp_strip_all_tags($text);
+    $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
+    // Collapse excessive whitespace.
+    $text = preg_replace('/\n{3,}/', "\n\n", $text);
+    return trim($text);
+}
+
+/**
+ * Send an HTML email with a plain-text fallback.
  *
  * @param string   $subject
  * @param string   $body    HTML body content (will be wrapped).
@@ -66,7 +89,18 @@ function send(string $subject, string $body, array $to = []): bool {
 
     $headers = ['Content-Type: text/html; charset=UTF-8'];
 
-    return wp_mail($to, $full_subject, $html, $headers);
+    // Set a plain-text alternative for email clients that prefer it
+    // and to improve deliverability with spam filters.
+    $plain_text = to_plain_text($body);
+    $set_alt_body = function (\PHPMailer\PHPMailer\PHPMailer $phpmailer) use ($plain_text): void {
+        $phpmailer->AltBody = $plain_text;
+    };
+
+    add_action('phpmailer_init', $set_alt_body);
+    $result = wp_mail($to, $full_subject, $html, $headers);
+    remove_action('phpmailer_init', $set_alt_body);
+
+    return $result;
 }
 
 /* ───────────────────────────────────────────────
@@ -102,20 +136,20 @@ add_action('lfuf_rsvp_added', function (array $rsvp, int $event_id): void {
 
     $body = '<p><strong>' . $name . '</strong> just RSVP\'d for <strong>' . esc_html($event_title) . '</strong>.</p>';
     $body .= '<table style="border-collapse:collapse;width:100%;margin:12px 0;">';
-    $body .= '<tr><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;">Party size</td>';
+    $body .= '<tr><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:#4b5563;">Party size</td>';
     $body .= '<td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;"><strong>' . $party_size . ' ' . ($party_size === 1 ? 'person' : 'people') . '</strong></td></tr>';
 
     if ($email) {
-        $body .= '<tr><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;">Email</td>';
+        $body .= '<tr><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:#4b5563;">Email</td>';
         $body .= '<td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;">' . $email . '</td></tr>';
     }
 
     if ($note) {
-        $body .= '<tr><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;">Note</td>';
+        $body .= '<tr><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:#4b5563;">Note</td>';
         $body .= '<td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;">' . $note . '</td></tr>';
     }
 
-    $body .= '<tr><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;">Total headcount</td>';
+    $body .= '<tr><td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;color:#4b5563;">Total headcount</td>';
     $body .= '<td style="padding:6px 12px;border-bottom:1px solid #f3f4f6;"><strong>' . $headcount . '</strong>';
     if ($cap > 0) {
         $body .= ' / ' . $cap;
@@ -153,15 +187,25 @@ add_action('lfuf_rsvp_cancelled', function (array $rsvp, int $event_id): void {
     $party_size  = (int) ($rsvp['party_size'] ?? 1);
 
     $headcount = 0;
+    $cap       = 0;
     if (function_exists('Leftfield\\EventManager\\RSVP\\get_headcount')) {
         $headcount = \Leftfield\EventManager\RSVP\get_headcount($event_id);
+        $cap       = (int) get_post_meta($event_id, '_lfuf_rsvp_cap', true);
     }
 
     $subject = 'RSVP Cancelled: ' . $name . ' → ' . $event_title;
 
     $body = '<p><strong>' . $name . '</strong> cancelled their RSVP for <strong>' . esc_html($event_title) . '</strong>';
     $body .= ' (' . $party_size . ' ' . ($party_size === 1 ? 'person' : 'people') . ').</p>';
-    $body .= '<p>Updated headcount: <strong>' . $headcount . '</strong></p>';
+    $body .= '<p>Updated headcount: <strong>' . $headcount . '</strong>';
+    if ($cap > 0) {
+        $remaining = $cap - $headcount;
+        $body .= ' / ' . $cap;
+        if ($remaining > 0) {
+            $body .= ' <span style="color:#065f46;">(' . $remaining . ' ' . ($remaining === 1 ? 'spot' : 'spots') . ' now available)</span>';
+        }
+    }
+    $body .= '</p>';
 
     send($subject, $body);
 }, 10, 2);
@@ -174,6 +218,14 @@ add_action('lfuf_stand_status_changed', function (int $location_id, bool $is_ope
     if (! apply_filters('lfuf_notify_stand_status_changed', true, $location_id, $is_open, $status_message)) {
         return;
     }
+
+    // Rate limit: skip if this stand was already notified within 5 minutes.
+    // Prevents email floods from repeated toggles (testing, accidents, etc.).
+    $transient_key = 'lfuf_stand_notified_' . $location_id;
+    if (get_transient($transient_key)) {
+        return;
+    }
+    set_transient($transient_key, true, 5 * MINUTE_IN_SECONDS);
 
     $location = get_post($location_id);
     if (! $location) {
@@ -196,17 +248,28 @@ add_action('lfuf_stand_status_changed', function (int $location_id, bool $is_ope
         $body .= '<p>Status message: <em>' . esc_html($status_message) . '</em></p>';
     }
 
-    $body .= '<p style="color:#6b7280;font-size:13px;">Toggled at ' . esc_html(current_time('M j, Y g:i A')) . '</p>';
+    // Include who made the change, if available (REST API calls are authenticated).
+    $user = wp_get_current_user();
+    if ($user && $user->ID) {
+        $body .= '<p style="color:#4b5563;font-size:13px;">Toggled by ' . esc_html($user->display_name) . ' at ' . esc_html(current_time('M j, Y g:i A')) . '</p>';
+    } else {
+        $body .= '<p style="color:#4b5563;font-size:13px;">Toggled at ' . esc_html(current_time('M j, Y g:i A')) . '</p>';
+    }
 
     send($subject, $body);
 }, 10, 3);
 
 /* ───────────────────────────────────────────────
  * Availability Rows Expired (daily summary)
+ *
+ * Suppressed by default — this is routine database cleanup
+ * that requires no operator action. Enable via filter:
+ *
+ *   add_filter( 'lfuf_notify_availability_expired', '__return_true' );
  * ─────────────────────────────────────────────── */
 
 add_action('lfuf_availability_expired_purged', function (int $count): void {
-    if (! apply_filters('lfuf_notify_availability_expired', true, $count)) {
+    if (! apply_filters('lfuf_notify_availability_expired', false, $count)) {
         return;
     }
 
